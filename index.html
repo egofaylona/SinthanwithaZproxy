@@ -233,10 +233,7 @@
     <summary><span class="t">Load a card from Scryfall</span></summary>
     <label for="lookup">Card name</label>
     <div class="ac"><input type="text" id="lookup" placeholder="Start typing a card name, then click a suggestion (Enter loads the typed name)" autocomplete="off"><div class="ac-list" id="acList"></div></div>
-    <div class="row">
-      <div><label for="lookupSet">Printing set code (optional)</label><input type="text" id="lookupSet" placeholder="e.g. lea, slz"></div>
-      <div><label>&nbsp;</label><div class="actions"><button id="loadArt" type="button">Load artwork</button><button class="secondary" id="randomCard" type="button">Random</button></div></div>
-    </div>
+    <div class="actions"><button id="loadArt" type="button">Load artwork</button><button class="secondary" id="randomCard" type="button">Random</button></div>
     <div id="printingWrap" hidden><label for="printing">Printing</label><select id="printing"></select></div>
     <div class="status" id="status"></div>
   </details>
@@ -1010,8 +1007,7 @@
   }
   function loadByName() {
     const q = $('lookup').value.trim(); if (!q) { status('Enter a card name.'); return; }
-    const set = $('lookupSet').value.trim().toLowerCase();
-    loadCard(`${API}/cards/named?fuzzy=${encodeURIComponent(q)}${set ? '&set=' + encodeURIComponent(set) : ''}`);
+    loadCard(`${API}/cards/named?fuzzy=${encodeURIComponent(q)}`);
   }
   $('loadArt').addEventListener('click', loadArt);
   $('lookup').addEventListener('keydown', e => { if (e.key === 'Enter' && !e.defaultPrevented) loadByName(); });
