@@ -50,6 +50,10 @@
   .hint{font-size:12px;color:var(--mute);margin:4px 0 0}
   .drop{border:1px dashed var(--line);padding:14px;text-align:center;color:var(--mute);font-size:12px;cursor:pointer;background:var(--field)}
   .drop.over{border-color:var(--ink);color:var(--ink)}
+  .pd-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:6px;margin-top:8px;max-height:320px;overflow-y:auto}
+  .pd-grid button{padding:0;border:1px solid var(--line);background:var(--field);aspect-ratio:1;overflow:hidden;cursor:pointer}
+  .pd-grid button:hover,.pd-grid button:focus-visible{border-color:var(--ink)}
+  .pd-grid img{width:100%;height:100%;object-fit:cover;display:block}
   .drop input{display:none}
   @media (max-width:900px){ body{grid-template-columns:1fr;grid-template-rows:auto 1fr;overflow:auto;height:auto}
     aside{border-right:0;border-bottom:1px solid var(--line)} #preview{max-height:80vh} }
@@ -151,6 +155,15 @@
   <details>
     <summary>Picture</summary>
     <div class="drop" id="drop"><input type="file" id="file" accept="image/*">Click, drop or paste an image</div>
+    <label for="pdQuery">Search public domain images</label>
+    <div class="row">
+      <div><input type="text" id="pdQuery" placeholder="e.g. monk, dragon, castle"></div>
+      <div><div class="actions">
+        <select id="pdSource" aria-label="Image source"><option value="commons">Wikimedia Commons</option><option value="openverse">Openverse</option></select>
+        <button class="secondary" id="pdSearch" type="button">Search</button></div></div>
+    </div>
+    <div class="pd-grid" id="pdResults"></div>
+    <p class="status" id="pdStatus"></p>
     <label for="fit">Fit</label>
     <select id="fit"><option value="contain">Fit inside frame (no cropping)</option><option value="cover">Fill frame (crop edges)</option></select>
     <div class="range"><label>Zoom</label><span></span><input type="range" id="zoom" min="0.5" max="3" step="0.01" value="1"><output>1.00</output></div>
@@ -739,6 +752,64 @@
   $('loadArt').addEventListener('click', loadArt);
   $('lookup').addEventListener('keydown', e => { if (e.key === 'Enter' && !e.defaultPrevented) loadByName(); });
   $('randomCard').addEventListener('click', () => loadCard(`${API}/cards/random`));
+
+  // ---------- public domain image search ----------
+  const pdStatus = m => { $('pdStatus').textContent = m; };
+  const stripTags = h => { const d = document.createElement('div'); d.innerHTML = (h || '').replace(/<[^>]+>/g, ' '); return d.textContent.replace(/\s+/g, ' ').trim(); };
+  const PD_SOURCES = {
+    async commons(q) {
+      // Commons has no license filter in search, so over-fetch and keep public domain / CC0 files only.
+      const u = 'https://commons.wikimedia.org/w/api.php?action=query&format=json&origin=*&generator=search&gsrnamespace=6&gsrlimit=50'
+        + '&gsrsearch=' + encodeURIComponent(q + ' filetype:bitmap')
+        + '&prop=imageinfo&iiprop=url|extmetadata&iiextmetadatafilter=LicenseShortName|Artist|ObjectName&iiurlwidth=1400';
+      const j = await (await fetch(u)).json();
+      return Object.values(j.query?.pages || {}).sort((a, b) => a.index - b.index).flatMap(p => {
+        const ii = p.imageinfo?.[0], md = ii?.extmetadata || {}, lic = md.LicenseShortName?.value || '';
+        if (!ii || !/public domain|^pd|cc0/i.test(lic)) return [];
+        const thumb = ii.thumburl.replace(/\/\d+px-/, '/300px-');
+        return [{ thumb, full: ii.thumburl, title: stripTags(md.ObjectName?.value) || p.title.replace(/^File:|\.\w+$/g, ''),
+          credit: stripTags(md.Artist?.value), license: lic, page: ii.descriptionurl }];
+      });
+    },
+    async openverse(q) {
+      const u = 'https://api.openverse.org/v1/images/?license=cc0,pdm&page_size=20&q=' + encodeURIComponent(q);
+      const j = await (await fetch(u)).json();
+      return (j.results || []).map(r => ({ thumb: r.thumbnail, full: r.url, fallback: r.thumbnail, title: r.title || 'Untitled',
+        credit: r.creator || '', license: (r.license || '').toUpperCase(), page: r.foreign_landing_url }));
+    }
+  };
+  const loadRemote = (src, fallback, label) => {
+    pdStatus('Loading picture…');
+    const im = new Image(); im.crossOrigin = 'anonymous';
+    im.onload = () => {
+      try { const c = document.createElement('canvas'); c.width = im.naturalWidth; c.height = im.naturalHeight;
+        c.getContext('2d').drawImage(im, 0, 0); imgData = c.toDataURL('image/jpeg', 0.92); }
+      catch (err) { if (fallback) { loadRemote(fallback, null, label); return; } pdStatus('That image blocks reuse in the browser. Try another one.'); return; }
+      img = im; schedule(); pdStatus(`Loaded: ${label}`);
+    };
+    im.onerror = () => { if (fallback) loadRemote(fallback, null, label); else pdStatus('Could not load that image. Try another one.'); };
+    im.src = src;
+  };
+  async function pdSearch() {
+    const q = $('pdQuery').value.trim(), src = $('pdSource').value, grid = $('pdResults');
+    if (!q) { pdStatus('Type something to search for.'); return; }
+    pdStatus('Searching…'); grid.innerHTML = '';
+    let res;
+    try { res = await PD_SOURCES[src](q); } catch (e) { pdStatus('Search failed. Check the connection.'); return; }
+    if (!res.length) { pdStatus('No public domain images found. Try other words or the other source.'); return; }
+    for (const r of res) {
+      const b = document.createElement('button'); b.type = 'button';
+      const label = [r.title, r.credit].filter(Boolean).join(' · ') + (r.license ? ` (${r.license})` : '');
+      b.title = label;
+      const im = document.createElement('img'); im.src = r.thumb; im.alt = r.title; im.loading = 'lazy';
+      im.onerror = () => b.remove();
+      b.appendChild(im); b.addEventListener('click', () => loadRemote(r.full, r.fallback, label));
+      grid.appendChild(b);
+    }
+    pdStatus(`${res.length} result(s). Click one to use it.`);
+  }
+  $('pdSearch').addEventListener('click', pdSearch);
+  $('pdQuery').addEventListener('keydown', e => { if (e.key === 'Enter') pdSearch(); });
 
   // ---------- collection (session only) ----------
   const colStatus = m => { $('colStatus').textContent = m; };
