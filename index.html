@@ -160,7 +160,8 @@
       <div><input type="text" id="pdQuery" placeholder="e.g. monk, dragon, castle"></div>
       <div><div class="actions">
         <select id="pdSource" aria-label="Image source"><option value="commons">Wikimedia Commons</option><option value="openverse">Openverse</option></select>
-        <button class="secondary" id="pdSearch" type="button">Search</button></div></div>
+        <button class="secondary" id="pdSearch" type="button">Search</button>
+        <button class="secondary" id="pdRandom" type="button">Random</button></div></div>
     </div>
     <div class="pd-grid" id="pdResults"></div>
     <p class="status" id="pdStatus"></p>
@@ -782,14 +783,24 @@
 
   // ---------- public domain image search ----------
   const pdStatus = m => { $('pdStatus').textContent = m; };
-  const stripTags = h => { const d = document.createElement('div'); d.innerHTML = (h || '').replace(/<[^>]+>/g, ' '); return d.textContent.replace(/\s+/g, ' ').trim(); };
+  const stripTags = h => { const d = document.createElement('div'); d.innerHTML = h || '';
+    d.querySelectorAll('[style*="display:none"],[style*="display: none"]').forEach(n => n.remove());   // Commons hides wikidata labels inline
+    d.querySelectorAll('br,div,p,li').forEach(n => n.before(' '));
+    return d.textContent.replace(/\s+/g, ' ').trim(); };
+  const getJSON = async u => {   // Openverse can hang for 15s+ when it's struggling, so give up after 20s
+    const ac = new AbortController(), t = setTimeout(() => ac.abort(), 20000);
+    try { const r = await fetch(u, { signal: ac.signal }); if (!r.ok) throw new Error('HTTP ' + r.status); return await r.json(); }
+    finally { clearTimeout(t); }
+  };
+  const RANDOM_WORDS = ['dragon','knight','castle','monk','forest','ship','owl','skull','angel','demon','wolf','serpent','sword','tower',
+    'mountain','storm','witch','king','queen','ruins','lion','raven','sea monster','cathedral','battle','wizard','horse','moon','tiger','giant'];
   const PD_SOURCES = {
-    async commons(q) {
+    async commons(q, page) {
       // Commons has no license filter in search, so over-fetch and keep public domain / CC0 files only.
-      const u = 'https://commons.wikimedia.org/w/api.php?action=query&format=json&origin=*&generator=search&gsrnamespace=6&gsrlimit=50'
+      const u = 'https://commons.wikimedia.org/w/api.php?action=query&format=json&origin=*&generator=search&gsrnamespace=6&gsrlimit=50&gsroffset=' + page * 50
         + '&gsrsearch=' + encodeURIComponent(q + ' filetype:bitmap')
         + '&prop=imageinfo&iiprop=url|extmetadata&iiextmetadatafilter=LicenseShortName|Artist|ObjectName&iiurlwidth=1400';
-      const j = await (await fetch(u)).json();
+      const j = await getJSON(u);
       return Object.values(j.query?.pages || {}).sort((a, b) => a.index - b.index).flatMap(p => {
         const ii = p.imageinfo?.[0], md = ii?.extmetadata || {}, lic = md.LicenseShortName?.value || '';
         if (!ii || !/public domain|^pd|cc0/i.test(lic)) return [];
@@ -798,9 +809,9 @@
           credit: stripTags(md.Artist?.value), license: lic, page: ii.descriptionurl }];
       });
     },
-    async openverse(q) {
-      const u = 'https://api.openverse.org/v1/images/?license=cc0,pdm&page_size=20&q=' + encodeURIComponent(q);
-      const j = await (await fetch(u)).json();
+    async openverse(q, page) {
+      const u = `https://api.openverse.org/v1/images/?license=cc0,pdm&page_size=20&page=${page + 1}&q=` + encodeURIComponent(q);
+      const j = await getJSON(u);
       return (j.results || []).map(r => ({ thumb: r.thumbnail, full: r.url, fallback: r.thumbnail, title: r.title || 'Untitled',
         credit: r.creator || '', license: (r.license || '').toUpperCase(), page: r.foreign_landing_url }));
     }
@@ -817,12 +828,15 @@
     im.onerror = () => { if (fallback) loadRemote(fallback, null, label); else pdStatus('Could not load that image. Try another one.'); };
     im.src = src;
   };
-  async function pdSearch() {
+  async function pdSearch(random) {
+    if (random === true) $('pdQuery').value = RANDOM_WORDS[Math.floor(Math.random() * RANDOM_WORDS.length)];
     const q = $('pdQuery').value.trim(), src = $('pdSource').value, grid = $('pdResults');
     if (!q) { pdStatus('Type something to search for.'); return; }
     pdStatus('Searching…'); grid.innerHTML = '';
     let res;
-    try { res = await PD_SOURCES[src](q); } catch (e) { pdStatus('Search failed. Check the connection.'); return; }
+    try { res = await PD_SOURCES[src](q, random === true ? Math.floor(Math.random() * 4) : 0);
+      if (!res.length && random === true) res = await PD_SOURCES[src](q, 0); }
+    catch (e) { pdStatus(src === 'openverse' ? 'Openverse is slow or down right now. Try again later, or use Wikimedia Commons.' : 'Search failed. Check the connection.'); return; }
     if (!res.length) { pdStatus('No public domain images found. Try other words or the other source.'); return; }
     for (const r of res) {
       const b = document.createElement('button'); b.type = 'button';
@@ -834,8 +848,11 @@
       grid.appendChild(b);
     }
     pdStatus(`${res.length} result(s). Click one to use it.`);
+    if (random === true) { const r = res[Math.floor(Math.random() * res.length)];
+      loadRemote(r.full, r.fallback, [r.title, r.credit].filter(Boolean).join(' · ') + (r.license ? ` (${r.license})` : '')); }
   }
-  $('pdSearch').addEventListener('click', pdSearch);
+  $('pdSearch').addEventListener('click', () => pdSearch());
+  $('pdRandom').addEventListener('click', () => pdSearch(true));
   $('pdQuery').addEventListener('keydown', e => { if (e.key === 'Enter') pdSearch(); });
 
   // ---------- collection (session only) ----------
