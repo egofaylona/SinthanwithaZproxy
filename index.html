@@ -183,6 +183,7 @@
   .titlebar{margin-bottom:0}
   .pane{display:grid;grid-template-columns:auto 16px;grid-template-rows:auto 16px;margin:0 -6px;border:1px solid var(--edge);background:var(--paper)}
   .pane .doc{padding:16px;display:flex;justify-content:center;min-width:0}
+  .quick{justify-content:center;padding:10px 0 4px}
   #preview{display:block;touch-action:none;max-height:calc(100vh - 170px);max-width:100%;background:var(--paper)}
   .vbar,.hbar{display:flex;justify-content:space-between;background:var(--plat)}
   .vbar{flex-direction:column;border-left:1px solid var(--edge)}
@@ -229,7 +230,7 @@
   <div class="menu"><button type="button" aria-haspopup="true" aria-expanded="false">File</button>
     <ul><li><button type="button" data-click="download">Download PNG</button></li><li><button type="button" data-click="addCard">Add to collection</button></li><li class="sep" aria-hidden="true"></li><li><button type="button" data-click="reset">Clear card</button></li></ul></div>
   <div class="menu"><button type="button" aria-haspopup="true" aria-expanded="false">Edit</button>
-    <ul><li><button type="button" data-click="reroll">Re-roll texture</button></li></ul></div>
+    <ul><li><button type="button" data-click="reroll">Re-roll texture</button></li><li><button type="button" data-click="shuffleLook">Shuffle look</button></li><li><button type="button" data-click="shuffleAging">Shuffle aging</button></li></ul></div>
   <div class="menu"><button type="button" aria-haspopup="true" aria-expanded="false">View</button>
     <ul><li><button type="button" data-view="open">Open all windows</button></li><li><button type="button" data-view="close">Collapse all windows</button></li></ul></div>
   <div class="menu"><button type="button" aria-haspopup="true" aria-expanded="false">Special</button>
@@ -242,8 +243,8 @@
     <summary><span class="t">Load a card from Scryfall</span></summary>
     <label for="lookup">Card name</label>
     <div class="lookup-row">
-      <div class="ac"><input type="text" id="lookup" placeholder="Start typing a card name, then click a suggestion (Enter loads the typed name)" autocomplete="off"><div class="ac-list" id="acList"></div></div>
-      <button class="secondary" id="randomCard" type="button">Random</button>
+      <div class="ac"><input type="text" id="lookup" placeholder="Card name" title="Start typing, then click a suggestion. Enter loads the typed name." autocomplete="off"><div class="ac-list" id="acList"></div></div>
+      <button class="secondary" id="randomCard" type="button">Random card</button>
     </div>
     <label for="printing">Printing</label>
     <select id="printing" disabled><option>Load a card first</option></select>
@@ -251,6 +252,78 @@
   </details>
 
   <details open>
+    <summary><span class="t">Card</span></summary>
+    <label for="name">Name</label>
+    <input type="text" id="name" placeholder="Card name">
+    <div class="check"><input type="checkbox" id="customFlag"><label for="customFlag">Custom name above the real name</label></div>
+    <div id="customWrap" hidden>
+      <label for="customName">Custom name</label>
+      <input type="text" id="customName" placeholder="Custom name">
+    </div>
+    <div class="row">
+      <div><label for="cost">Mana cost</label><input type="text" id="cost" placeholder="2RR"></div>
+      <div><label for="pt">Power / toughness or loyalty</label><input type="text" id="pt" placeholder="3/3"></div>
+    </div>
+    <label for="type">Type line</label>
+    <input type="text" id="type" placeholder="Summon — Goblin">
+    <label for="rules">Rules text</label>
+    <textarea id="rules" placeholder="Rules text. Blank line = new paragraph. Use TAP for the tap symbol."></textarea>
+    <label for="flavor">Flavor text</label>
+    <textarea id="flavor" style="min-height:44px" placeholder="Optional"></textarea>
+    <details class="sub">
+      <summary>Print details</summary>
+      <div class="row">
+        <div><label for="annotation">Scribble</label><input type="text" id="annotation" placeholder="e.g. RIP"></div>
+        <div><label for="number">Collector number</label><input type="text" id="number" placeholder="0001"></div>
+      </div>
+      <div class="row">
+        <div><label for="setcode">Set code</label><input type="text" id="setcode" placeholder="PRX"></div>
+        <div><label for="footer">Footer</label><input type="text" id="footer" placeholder="proxy — not for sale"></div>
+      </div>
+    </details>
+    <div class="actions" style="margin-top:8px"><button class="secondary" id="reset" type="button">Clear card</button></div>
+  </details>
+
+  <details open>
+    <summary><span class="t">Picture</span></summary>
+    <div class="drop" id="drop"><input type="file" id="file" accept="image/*">Click, drop or paste an image</div>
+    <label for="pdQuery">Search public domain images</label>
+    <div class="row">
+      <div><input type="text" id="pdQuery" placeholder="e.g. monk, dragon, castle"></div>
+      <div><div class="actions">
+        <select id="pdSource" aria-label="Image source"><option value="commons">Wikimedia Commons</option><option value="loc">Library of Congress</option></select>
+        <button class="secondary" id="pdSearch" type="button">Search</button>
+        <button class="secondary" id="pdRandom" type="button">Random picture</button></div></div>
+    </div>
+    <div class="pd-grid" id="pdResults"></div>
+    <p class="status" id="pdStatus"></p>
+    <label for="fit">Picture fit</label>
+    <select id="fit"><option value="contain">Fit inside frame (no cropping)</option><option value="cover">Fill frame (crop edges)</option></select>
+    <div class="range"><label>Zoom</label><span></span><input type="range" id="zoom" min="0.5" max="3" step="0.01" value="1"><output>1.00</output></div>
+    <!-- position is set by dragging the preview; the sliders stay (hidden) as the state behind it and for old saved cards -->
+    <div hidden>
+      <div class="range"><label>Offset X</label><span></span><input type="range" id="offx" min="-1" max="1" step="0.01" value="0"><output>0.00</output></div>
+      <div class="range"><label>Offset Y</label><span></span><input type="range" id="offy" min="-1" max="1" step="0.01" value="0"><output>0.00</output></div>
+    </div>
+    <div class="actions" style="margin-top:6px"><button class="secondary" id="resetPos" type="button">Reset position</button></div>
+    <div class="check"><input type="checkbox" id="artBorder" checked><label for="artBorder">Border around picture</label></div>
+    <details class="sub">
+      <summary>Adjust halftone</summary>
+      <label for="dither">Picture dither</label>
+      <select id="dither">
+        <option value="bayer">Ordered dither (screen)</option>
+        <option value="fs">Error diffusion (grain)</option>
+        <option value="threshold">Hard threshold</option>
+        <option value="gray">Grayscale, no dither</option>
+      </select>
+      <div class="range"><label>Dot size</label><span></span><input type="range" id="dot" min="1" max="5" step="1" value="2"><output>2</output></div>
+      <div class="range"><label>Contrast</label><span></span><input type="range" id="contrast" min="0" max="3" step="0.05" value="1.4"><output>1.40</output></div>
+      <div class="range"><label>Brightness</label><span></span><input type="range" id="bright" min="-100" max="100" step="1" value="0"><output>0</output></div>
+      <div class="check"><input type="checkbox" id="invert"><label for="invert">Invert picture</label></div>
+    </details>
+  </details>
+
+  <details>
     <summary><span class="t">Frame</span></summary>
     <div class="row">
       <div><label for="layout">Layout</label>
@@ -272,6 +345,7 @@
     </div>
     <div id="pokerWrap" hidden><label for="pokerColor">Poker card color</label>
       <select id="pokerColor"><option value="red">Red</option><option value="blue">Blue</option></select></div>
+    <div id="bandWrap" hidden><div class="range"><label>Banding strength</label><span></span><input type="range" id="band" min="0" max="1" step="0.01" value="0.5"><output>0.50</output></div></div>
     <details class="sub">
       <summary>Type and sizes</summary>
       <div class="row">
@@ -301,96 +375,30 @@
   </details>
 
   <details>
-    <summary><span class="t">Card</span></summary>
-    <div class="check"><input type="checkbox" id="customFlag"><label for="customFlag">Custom card (custom name above the real name)</label></div>
-    <div id="customWrap" hidden>
-      <label for="customName">Custom name</label>
-      <input type="text" id="customName" placeholder="Custom name">
-    </div>
-    <label for="name">Name</label>
-    <input type="text" id="name" placeholder="Card name">
-    <div class="row">
-      <div><label for="cost">Mana cost</label><input type="text" id="cost" placeholder="2RR"></div>
-      <div><label for="pt">Power / toughness or loyalty</label><input type="text" id="pt" placeholder="3/3"></div>
-    </div>
-    <label for="type">Type line</label>
-    <input type="text" id="type" placeholder="Summon — Goblin">
-    <label for="rules">Rules text</label>
-    <textarea id="rules" placeholder="Rules text. Blank line = new paragraph. Use TAP for the tap symbol."></textarea>
-    <label for="flavor">Flavor text</label>
-    <textarea id="flavor" style="min-height:44px" placeholder="Optional"></textarea>
-    <details class="sub">
-      <summary>Print details</summary>
-      <div class="row">
-        <div><label for="annotation">Handwritten note</label><input type="text" id="annotation" placeholder="e.g. RIP"></div>
-        <div><label for="number">Collector number</label><input type="text" id="number" placeholder="0001"></div>
-      </div>
-      <div class="row">
-        <div><label for="setcode">Set code</label><input type="text" id="setcode" placeholder="PRX"></div>
-        <div><label for="footer">Footer text (right)</label><input type="text" id="footer" placeholder="proxy — not for sale"></div>
-      </div>
-    </details>
-  </details>
-
-  <details>
-    <summary><span class="t">Picture</span></summary>
-    <div class="drop" id="drop"><input type="file" id="file" accept="image/*">Click, drop or paste an image</div>
-    <label for="pdQuery">Search public domain images</label>
-    <div class="row">
-      <div><input type="text" id="pdQuery" placeholder="e.g. monk, dragon, castle"></div>
-      <div><div class="actions">
-        <select id="pdSource" aria-label="Image source"><option value="commons">Wikimedia Commons</option><option value="loc">Library of Congress</option></select>
-        <button class="secondary" id="pdSearch" type="button">Search</button>
-        <button class="secondary" id="pdRandom" type="button">Random</button></div></div>
-    </div>
-    <div class="pd-grid" id="pdResults"></div>
-    <p class="status" id="pdStatus"></p>
-    <label for="fit">Fit</label>
-    <select id="fit"><option value="contain">Fit inside frame (no cropping)</option><option value="cover">Fill frame (crop edges)</option></select>
-    <div class="range"><label>Zoom</label><span></span><input type="range" id="zoom" min="0.5" max="3" step="0.01" value="1"><output>1.00</output></div>
-    <div class="range"><label>Offset X</label><span></span><input type="range" id="offx" min="-1" max="1" step="0.01" value="0"><output>0.00</output></div>
-    <div class="range"><label>Offset Y</label><span></span><input type="range" id="offy" min="-1" max="1" step="0.01" value="0"><output>0.00</output></div>
-    <label for="dither">Halftone mode</label>
-    <select id="dither">
-      <option value="bayer">Ordered dither (screen)</option>
-      <option value="fs">Error diffusion (grain)</option>
-      <option value="threshold">Hard threshold</option>
-      <option value="gray">Grayscale, no dither</option>
-    </select>
-    <div class="range"><label>Dot size</label><span></span><input type="range" id="dot" min="1" max="5" step="1" value="2"><output>2</output></div>
-    <div class="range"><label>Contrast</label><span></span><input type="range" id="contrast" min="0" max="3" step="0.05" value="1.4"><output>1.40</output></div>
-    <div class="range"><label>Brightness</label><span></span><input type="range" id="bright" min="-100" max="100" step="1" value="0"><output>0</output></div>
-    <div class="check"><input type="checkbox" id="invert"><label for="invert">Invert picture</label></div>
-    <div class="check"><input type="checkbox" id="artBorder" checked><label for="artBorder">Border around picture</label></div>
-  </details>
-
-  <details>
-    <summary><span class="t">Photocopy</span></summary>
+    <summary><span class="t">Aging</span></summary>
     <div class="range"><label>Paper grain</label><span></span><input type="range" id="grain" min="0" max="1" step="0.01" value="0.35"><output>0.35</output></div>
     <div class="range"><label>Toner contrast</label><span></span><input type="range" id="toner" min="0" max="1" step="0.01" value="0.3"><output>0.30</output></div>
     <div class="range"><label>Ink specks</label><span></span><input type="range" id="specks" min="0" max="1" step="0.01" value="0.3"><output>0.30</output></div>
     <div class="range"><label>Edge darkening</label><span></span><input type="range" id="vignette" min="0" max="1" step="0.01" value="0.25"><output>0.25</output></div>
     <div class="range"><label>Paper yellowing</label><span></span><input type="range" id="yellow" min="0" max="1" step="0.01" value="0.5"><output>0.50</output></div>
-    <div class="range"><label>Banding strength</label><span></span><input type="range" id="band" min="0" max="1" step="0.01" value="0.5"><output>0.50</output></div>
-  </details>
-
-  <details>
-    <summary><span class="t">Damage</span></summary>
-    <div class="range"><label>Pencil scratches</label><span></span><input type="range" id="scratch" min="0" max="1" step="0.01" value="0.3"><output>0.30</output></div>
-    <div class="range"><label>Tape pieces</label><span></span><input type="range" id="tape" min="0" max="6" step="1" value="2"><output>2</output></div>
-    <div class="range"><label>Ink drops</label><span></span><input type="range" id="drops" min="0" max="8" step="1" value="0"><output>0</output></div>
-    <div class="range"><label>Thumb prints</label><span></span><input type="range" id="thumbs" min="0" max="3" step="1" value="0"><output>0</output></div>
-    <div class="range"><label>Ink smears</label><span></span><input type="range" id="smears" min="0" max="4" step="1" value="0"><output>0</output></div>
-    <div class="range"><label>Miscut</label><span></span><input type="range" id="miscut" min="0" max="1" step="0.01" value="0"><output>0.00</output></div>
-    <div class="range"><label>Crimps</label><span></span><input type="range" id="crimps" min="0" max="3" step="1" value="0"><output>0</output></div>
+    <details class="sub">
+      <summary>Damage</summary>
+      <div class="range"><label>Pencil scratches</label><span></span><input type="range" id="scratch" min="0" max="1" step="0.01" value="0.3"><output>0.30</output></div>
+      <div class="range"><label>Tape pieces</label><span></span><input type="range" id="tape" min="0" max="6" step="1" value="2"><output>2</output></div>
+      <div class="range"><label>Ink drops</label><span></span><input type="range" id="drops" min="0" max="8" step="1" value="0"><output>0</output></div>
+      <div class="range"><label>Thumb prints</label><span></span><input type="range" id="thumbs" min="0" max="3" step="1" value="0"><output>0</output></div>
+      <div class="range"><label>Ink smears</label><span></span><input type="range" id="smears" min="0" max="4" step="1" value="0"><output>0</output></div>
+      <div class="range"><label>Miscut</label><span></span><input type="range" id="miscut" min="0" max="1" step="0.01" value="0"><output>0.00</output></div>
+      <div class="range"><label>Crimps</label><span></span><input type="range" id="crimps" min="0" max="3" step="1" value="0"><output>0</output></div>
+    </details>
     <div class="actions" style="margin-top:8px"><button class="secondary" id="reroll" type="button">Re-roll texture</button></div>
   </details>
 
   <details>
-    <summary><span class="t">Collection (session only)</span></summary>
+    <summary><span class="t">Collection</span></summary>
     <div class="actions">
       <button id="addCard" type="button">Add current card</button>
-      <button class="secondary" id="clearCol" type="button">Empty</button>
+      <button class="secondary" id="clearCol" type="button">Empty collection</button>
     </div>
     <div class="collist" id="colList"></div>
     <div class="actions" style="margin-top:10px">
@@ -402,19 +410,8 @@
       <input type="file" id="impFile" accept="application/json,.json" hidden>
     </div>
     <div class="status" id="colStatus"></div>
-    <p class="hint">A4 sheet: 3 × 3 cards at real size with crop marks. PDF embeds the pages as JPEG; Print opens the browser dialog with lossless pages (from there, "Save as PDF" or print directly).</p>
+    <p class="hint">A4 sheet: 3 × 3 cards at real size with crop marks, 600 dpi. PDF embeds the pages as JPEG; Print opens the browser dialog with lossless pages (from there, "Save as PDF" or print directly).</p>
     <p class="hint">The collection is kept in memory only and is lost when the page is closed. The JSON contains the picture, so it is a few MB per card.</p>
-  </details>
-
-  <details open>
-    <summary><span class="t">Export</span></summary>
-    <label for="dpi">Resolution</label>
-    <select id="dpi"><option value="1">300 dpi (744 × 1039)</option><option value="2" selected>600 dpi (1488 × 2079)</option></select>
-    <div class="actions" style="margin-top:10px">
-      <button id="download" type="button">Download PNG</button>
-      <button class="secondary" id="reset" type="button">Clear card</button>
-    </div>
-    <p class="hint">Preview renders at 300 dpi. Export uses the resolution selected above.</p>
   </details>
 </aside>
 
@@ -429,6 +426,7 @@
       <ul class="about-list">
         <li>Public domain picture search (Wikimedia Commons, Library of Congress) with a Random button</li>
         <li>Drag the picture on the preview to position it</li>
+        <li>Shuffle look and Shuffle aging buttons under the preview</li>
         <li>Size sliders for the title, type line and rules text</li>
         <li>Rules text grows to fill its box</li>
         <li>A little more nostalgia in the UI theme</li>
@@ -448,11 +446,17 @@
       <div class="hbar" aria-hidden="true"><i></i><i></i></div>
       <div class="grow" aria-hidden="true"></div>
     </div>
+    <div class="quick actions" role="group" aria-label="Quick controls">
+      <button id="download" type="button">Download PNG</button>
+      <button class="secondary" id="shuffleLook" type="button">Shuffle look</button>
+      <button class="secondary" id="shuffleAging" type="button">Shuffle aging</button>
+    </div>
   </div>
 </main>
 
 <script>
 (() => {
+  const EXPORT_SCALE = 2;                // exports and sheets render at 600 dpi
   const W = 744, H = 1039;               // 63 × 88 mm at 300 dpi
   const INK = [18, 18, 18];
   const FONTS = {
@@ -872,7 +876,7 @@
   preview.addEventListener('pointerup', endDrag);
   preview.addEventListener('pointercancel', endDrag);
 
-  const syncPoker = () => { $('pokerWrap').hidden = $('treat').value !== 'poker'; };
+  const syncPoker = () => { $('pokerWrap').hidden = $('treat').value !== 'poker'; $('bandWrap').hidden = $('treat').value !== 'banding'; };
   syncPoker();
   for (const id of ids) {
     const el = $(id);
@@ -900,9 +904,33 @@
   drop.addEventListener('drop', e => { e.preventDefault(); drop.classList.remove('over'); loadFile(e.dataTransfer.files[0]); });
   document.addEventListener('paste', e => { const it = [...(e.clipboardData?.items || [])].find(i => i.type.startsWith('image/')); if (it) loadFile(it.getAsFile()); });
 
+  // ---------- quick controls: shuffle how the card looks (never its contents) ----------
+  const pick = a => a[Math.floor(Math.random() * a.length)];
+  const setCtl = (id, v) => { const el = $(id);
+    if (el.type === 'checkbox') el.checked = !!v; else el.value = v;
+    if (el.type === 'range') el.parentElement.querySelector('output').textContent = el.step === '1' ? el.value : parseFloat(el.value).toFixed(2); };
+  const randRange = (id, max) => { const el = $(id), lo = +el.min, hi = Math.min(+el.max, max ?? +el.max), st = +el.step;
+    setCtl(id, (lo + Math.round(Math.random() * (hi - lo) / st) * st).toFixed(st < 1 ? 2 : 0)); };
+  const opts = id => [...$(id).options].map(o => o.value);
+  $('shuffleLook').addEventListener('click', () => {
+    setCtl('layout', pick(opts('layout')));
+    setCtl('treat', pick(opts('treat'))); setCtl('pokerColor', pick(opts('pokerColor')));
+    setCtl('headFont', pick(opts('headFont'))); setCtl('bodyFont', pick(opts('bodyFont')));
+    setCtl('fit', pick(opts('fit'))); setCtl('dither', pick(opts('dither')));
+    randRange('zoom', 1.8); setCtl('offx', 0); setCtl('offy', 0);
+    randRange('dot'); randRange('contrast'); setCtl('bright', Math.round((Math.random() - .5) * 80));
+    setCtl('invert', Math.random() < .15); setCtl('artBorder', Math.random() < .7);
+    syncPoker(); schedule();
+  });
+  $('shuffleAging').addEventListener('click', () => {
+    for (const id of ['grain','toner','specks','vignette','yellow','band','scratch','tape','drops','thumbs','smears','crimps']) randRange(id);
+    randRange('miscut', .35); seed = Math.floor(Math.random() * 2147483646) + 1; schedule();
+  });
+  $('resetPos').addEventListener('click', () => { setCtl('offx', 0); setCtl('offy', 0); schedule(); });
+
   $('reroll').addEventListener('click', () => { seed = (seed * 16807 + 11) % 2147483647; schedule(); });
   $('download').addEventListener('click', () => {
-    const c = document.createElement('canvas'); render(c, parseFloat($('dpi').value));
+    const c = document.createElement('canvas'); render(c, EXPORT_SCALE);
     const st = S(), a = document.createElement('a');
     const nm = (st.customFlag && st.customName.trim() ? st.customName : st.name).trim().replace(/[^\w-]+/g, '_') || 'card';
     a.download = `${nm}.png`; a.href = c.toDataURL('image/png'); a.click();
@@ -1180,7 +1208,7 @@
 
   // A4 sheet, 3 x 3
   async function buildSheets() {
-    const s = parseFloat($('dpi').value);
+    const s = EXPORT_SCALE;
     const AW = Math.round(2480 * s), AH = Math.round(3508 * s);   // A4 at 300 / 600 dpi
     const cw = W * s, ch = H * s;
     const gx = (AW - 3 * cw) / 2, gy = (AH - 3 * ch) / 2;
