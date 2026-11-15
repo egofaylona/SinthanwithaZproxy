@@ -183,6 +183,9 @@
   .titlebar{margin-bottom:0}
   .pane{display:grid;grid-template-columns:auto 16px;grid-template-rows:auto 16px;margin:0 -6px;border:1px solid var(--edge);background:var(--paper)}
   .pane .doc{padding:16px;display:flex;justify-content:center;min-width:0}
+  .grp{margin:14px 0 0;padding-top:6px;border-top:1px solid var(--plat-lo);font:700 12px/1.2 var(--geneva)}
+  .quick .dial{flex:1 1 100%;display:flex;align-items:center;gap:8px;font:12px var(--geneva)}
+  .quick .dial input{flex:1;min-width:80px}
   .quick{justify-content:center;padding:10px 0 4px}
   #preview{display:block;touch-action:none;max-height:calc(100vh - 170px);max-width:100%;background:var(--paper)}
   .vbar,.hbar{display:flex;justify-content:space-between;background:var(--plat)}
@@ -287,7 +290,8 @@
   <details open>
     <summary><span class="t">Picture</span></summary>
     <div class="drop" id="drop"><input type="file" id="file" accept="image/*">Click, drop or paste an image</div>
-    <label for="pdQuery">Search public domain images</label>
+    <details class="sub" open>
+    <summary>Search public domain images</summary>
     <div class="row">
       <div><input type="text" id="pdQuery" placeholder="e.g. monk, dragon, castle"></div>
       <div><div class="actions">
@@ -297,6 +301,8 @@
     </div>
     <div class="pd-grid" id="pdResults"></div>
     <p class="status" id="pdStatus"></p>
+    </details>
+    <p class="grp">Crop</p>
     <label for="fit">Picture fit</label>
     <select id="fit"><option value="contain">Fit inside frame (no cropping)</option><option value="cover">Fill frame (crop edges)</option></select>
     <div class="range"><label>Zoom</label><span></span><input type="range" id="zoom" min="0.5" max="3" step="0.01" value="1"><output>1.00</output></div>
@@ -306,20 +312,21 @@
       <div class="range"><label>Offset Y</label><span></span><input type="range" id="offy" min="-1" max="1" step="0.01" value="0"><output>0.00</output></div>
     </div>
     <div class="actions" style="margin-top:6px"><button class="secondary" id="resetPos" type="button">Reset position</button></div>
-    <div class="check"><input type="checkbox" id="artBorder" checked><label for="artBorder">Border around picture</label></div>
+    <p class="grp">Halftone</p>
+    <label for="dither">Picture dither</label>
+    <select id="dither">
+      <option value="bayer">Ordered dither (screen)</option>
+      <option value="fs">Error diffusion (grain)</option>
+      <option value="threshold">Hard threshold</option>
+      <option value="gray">Grayscale, no dither</option>
+    </select>
+    <div class="range"><label>Contrast</label><span></span><input type="range" id="contrast" min="0" max="3" step="0.05" value="1.4"><output>1.40</output></div>
     <details class="sub">
-      <summary>Adjust halftone</summary>
-      <label for="dither">Picture dither</label>
-      <select id="dither">
-        <option value="bayer">Ordered dither (screen)</option>
-        <option value="fs">Error diffusion (grain)</option>
-        <option value="threshold">Hard threshold</option>
-        <option value="gray">Grayscale, no dither</option>
-      </select>
+      <summary>Fine tune</summary>
       <div class="range"><label>Dot size</label><span></span><input type="range" id="dot" min="1" max="5" step="1" value="2"><output>2</output></div>
-      <div class="range"><label>Contrast</label><span></span><input type="range" id="contrast" min="0" max="3" step="0.05" value="1.4"><output>1.40</output></div>
       <div class="range"><label>Brightness</label><span></span><input type="range" id="bright" min="-100" max="100" step="1" value="0"><output>0</output></div>
       <div class="check"><input type="checkbox" id="invert"><label for="invert">Invert picture</label></div>
+      <div class="check"><input type="checkbox" id="artBorder" checked><label for="artBorder">Border around picture</label></div>
     </details>
   </details>
 
@@ -450,6 +457,7 @@
       <button id="download" type="button">Download PNG</button>
       <button class="secondary" id="shuffleLook" type="button">Shuffle look</button>
       <button class="secondary" id="shuffleAging" type="button">Shuffle aging</button>
+      <div class="dial"><label for="damageDial" style="margin:0">Damage</label><input type="range" id="damageDial" min="0" max="100" step="1" value="0" aria-label="Damage amount"><button class="secondary" id="clearDamage" type="button">Clear damage</button></div>
     </div>
   </div>
 </main>
@@ -848,7 +856,12 @@
   }
 
   const preview = $('preview');
-  const schedule = () => { clearTimeout(timer); timer = setTimeout(() => render(preview, 1), 60); };
+  // Land layout makes no sense for a creature
+  const syncLayout = () => {
+    const o = [...$('layout').options].find(x => x.value === 'land'), creature = /creature/i.test($('type').value);
+    o.disabled = creature; if (creature && $('layout').value === 'land') $('layout').value = 'standard';
+  };
+  const schedule = () => { syncLayout(); clearTimeout(timer); timer = setTimeout(() => render(preview, 1), 60); };
 
   // ---------- drag the picture on the preview (drives the Offset X/Y sliders) ----------
   const toCard = e => { const b = preview.getBoundingClientRect(); return { x: (e.clientX - b.left) * W / b.width, y: (e.clientY - b.top) * H / b.height }; };
@@ -911,9 +924,9 @@
     if (el.type === 'range') el.parentElement.querySelector('output').textContent = el.step === '1' ? el.value : parseFloat(el.value).toFixed(2); };
   const randRange = (id, max) => { const el = $(id), lo = +el.min, hi = Math.min(+el.max, max ?? +el.max), st = +el.step;
     setCtl(id, (lo + Math.round(Math.random() * (hi - lo) / st) * st).toFixed(st < 1 ? 2 : 0)); };
-  const opts = id => [...$(id).options].map(o => o.value);
+  const opts = id => [...$(id).options].filter(o => !o.disabled).map(o => o.value);
   $('shuffleLook').addEventListener('click', () => {
-    setCtl('layout', pick(opts('layout')));
+    syncLayout(); setCtl('layout', pick(opts('layout')));
     setCtl('treat', pick(opts('treat'))); setCtl('pokerColor', pick(opts('pokerColor')));
     setCtl('headFont', pick(opts('headFont'))); setCtl('bodyFont', pick(opts('bodyFont')));
     setCtl('fit', pick(opts('fit'))); setCtl('dither', pick(opts('dither')));
@@ -926,6 +939,17 @@
     for (const id of ['grain','toner','specks','vignette','yellow','band','scratch','tape','drops','thumbs','smears','crimps']) randRange(id);
     randRange('miscut', .35); seed = Math.floor(Math.random() * 2147483646) + 1; schedule();
   });
+  // damage dial: one knob scales every damage slider; the sliders keep the fine control
+  const DAMAGE = { scratch: 1, tape: 1, drops: 1, thumbs: 1, smears: 1, miscut: .35, crimps: 1 };
+  const dmgMax = id => Math.min(+$(id).max, DAMAGE[id] * +$(id).max);
+  const setDamage = f => { for (const id in DAMAGE) { const el = $(id), st = +el.step, v = f * dmgMax(id);
+      setCtl(id, (st < 1 ? v : Math.round(v)).toFixed(st < 1 ? 2 : 0)); } schedule(); };
+  const syncDial = () => { let t = 0; for (const id in DAMAGE) t += Math.min(1, +$(id).value / dmgMax(id));
+    $('damageDial').value = Math.round(100 * t / Object.keys(DAMAGE).length); };
+  $('damageDial').addEventListener('input', () => setDamage($('damageDial').value / 100));
+  $('clearDamage').addEventListener('click', () => { setDamage(0); $('damageDial').value = 0; });
+  for (const id in DAMAGE) $(id).addEventListener('input', syncDial);
+  $('shuffleAging').addEventListener('click', syncDial);
   $('resetPos').addEventListener('click', () => { setCtl('offx', 0); setCtl('offy', 0); schedule(); });
 
   $('reroll').addEventListener('click', () => { seed = (seed * 16807 + 11) % 2147483647; schedule(); });
@@ -1155,7 +1179,7 @@
       if (el.type === 'checkbox') el.checked = !!st[id]; else el.value = st[id];
       if (el.type === 'range') el.parentElement.querySelector('output').textContent = el.step === '1' ? el.value : parseFloat(el.value).toFixed(2); }
     $('customWrap').hidden = !$('customFlag').checked;
-    syncPoker();
+    syncPoker(); syncDial(); schedule();
   }
 
   function drawList() {
