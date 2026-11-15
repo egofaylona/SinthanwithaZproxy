@@ -159,7 +159,7 @@
     <div class="row">
       <div><input type="text" id="pdQuery" placeholder="e.g. monk, dragon, castle"></div>
       <div><div class="actions">
-        <select id="pdSource" aria-label="Image source"><option value="commons">Wikimedia Commons</option><option value="openverse">Openverse</option></select>
+        <select id="pdSource" aria-label="Image source"><option value="commons">Wikimedia Commons</option><option value="loc">Library of Congress</option></select>
         <button class="secondary" id="pdSearch" type="button">Search</button>
         <button class="secondary" id="pdRandom" type="button">Random</button></div></div>
     </div>
@@ -787,7 +787,7 @@
     d.querySelectorAll('[style*="display:none"],[style*="display: none"]').forEach(n => n.remove());   // Commons hides wikidata labels inline
     d.querySelectorAll('br,div,p,li').forEach(n => n.before(' '));
     return d.textContent.replace(/\s+/g, ' ').trim(); };
-  const getJSON = async u => {   // Openverse can hang for 15s+ when it's struggling, so give up after 20s
+  const getJSON = async u => {   // give up on a hung API after 20s
     const ac = new AbortController(), t = setTimeout(() => ac.abort(), 20000);
     try { const r = await fetch(u, { signal: ac.signal }); if (!r.ok) throw new Error('HTTP ' + r.status); return await r.json(); }
     finally { clearTimeout(t); }
@@ -809,11 +809,22 @@
           credit: stripTags(md.Artist?.value), license: lic, page: ii.descriptionurl }];
       });
     },
-    async openverse(q, page) {
-      const u = `https://api.openverse.org/v1/images/?license=cc0,pdm&page_size=20&page=${page + 1}&q=` + encodeURIComponent(q);
+    async loc(q, page) {
+      // Prints & Photographs. Skip access-restricted items and any record whose rights note mentions a restriction.
+      const u = `https://www.loc.gov/photos/?fo=json&at=results&c=40&sp=${page + 1}&q=` + encodeURIComponent(q);
       const j = await getJSON(u);
-      return (j.results || []).map(r => ({ thumb: r.thumbnail, full: r.url, fallback: r.thumbnail, title: r.title || 'Untitled',
-        credit: r.creator || '', license: (r.license || '').toUpperCase(), page: r.foreign_landing_url }));
+      return (j.results || []).flatMap(r => {
+        const urls = (r.image_url || []).map(x => x.split('#')[0]);
+        const rights = r.item?.rights || '';
+        if (!urls.length || r.access_restricted || (rights && !/no known restrictions/i.test(rights))) return [];
+        if (!(r.original_format || []).some(f => /photo|print|drawing/i.test(f))) return [];
+        if ((r.item?.genre || []).some(g => /card catalog/i.test(g)) || /card catalog/i.test(r.item?.source_collection || '')) return [];  // scanned index cards
+        const big = urls[urls.length - 1];
+        const full = /image-services\/iiif/.test(big) ? big.replace(/\/full\/[^/]+\//, '/full/1400,/') : big;
+        return [{ thumb: urls[0], full, fallback: urls[0], title: (r.title || 'Untitled').replace(/\s+/g, ' '),
+          credit: [(r.contributor || [])[0], r.date].filter(Boolean).join(', '),
+          license: rights ? 'No known restrictions' : 'LoC, see record', page: r.url }];
+      });
     }
   };
   const loadRemote = (src, fallback, label) => {
@@ -836,7 +847,7 @@
     let res;
     try { res = await PD_SOURCES[src](q, random === true ? Math.floor(Math.random() * 4) : 0);
       if (!res.length && random === true) res = await PD_SOURCES[src](q, 0); }
-    catch (e) { pdStatus(src === 'openverse' ? 'Openverse is slow or down right now. Try again later, or use Wikimedia Commons.' : 'Search failed. Check the connection.'); return; }
+    catch (e) { pdStatus('Search failed or timed out. Try again, or switch source.'); return; }
     if (!res.length) { pdStatus('No public domain images found. Try other words or the other source.'); return; }
     for (const r of res) {
       const b = document.createElement('button'); b.type = 'button';
