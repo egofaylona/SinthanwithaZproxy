@@ -46,7 +46,7 @@
   button{padding:8px 14px;border:1px solid var(--ink);background:var(--ink);color:#fff;font:inherit;cursor:pointer;border-radius:2px}
   button.secondary{background:transparent;color:var(--ink)}
   .actions{display:flex;gap:10px;flex-wrap:wrap}
-  #preview{max-height:calc(100vh - 100px);max-width:100%;box-shadow:0 10px 30px rgba(0,0,0,.35);background:#fff}
+  #preview{touch-action:none;max-height:calc(100vh - 100px);max-width:100%;box-shadow:0 10px 30px rgba(0,0,0,.35);background:#fff}
   .hint{font-size:12px;color:var(--mute);margin:4px 0 0}
   .drop{border:1px dashed var(--line);padding:14px;text-align:center;color:var(--mute);font-size:12px;cursor:pointer;background:var(--field)}
   .drop.over{border-color:var(--ink);color:var(--ink)}
@@ -257,7 +257,7 @@
                'fit','zoom','offx','offy','dither','dot','contrast','bright','invert','artBorder',
                'grain','toner','specks','vignette','yellow','band',
                'scratch','tape','drops','thumbs','smears','miscut','crimps','dpi'];
-  let img = null, imgData = null, seed = 1, timer = null, collection = [];
+  let img = null, imgData = null, seed = 1, timer = null, collection = [], lastArtRect = null;
 
   const S = () => { const o = {}; for (const id of ids) { const el = $(id);
       o[id] = el.type === 'checkbox' ? el.checked : (el.type === 'range' ? parseFloat(el.value) : el.value); } return o; };
@@ -337,6 +337,7 @@
     // full-art: picture first, under everything
     let artRect = null;
     if (full) artRect = { x: 12, y: 12, w: W - 24, h: H - 24 };
+    lastArtRect = artRect;
     if (full && img) { const art = processArt(artRect.w, artRect.h, s, st, paper); ctx.imageSmoothingEnabled = false; ctx.drawImage(art, artRect.x, artRect.y, artRect.w, artRect.h); ctx.imageSmoothingEnabled = true; }
 
     ctx.strokeStyle = rgb(INK); ctx.lineWidth = 2;
@@ -374,7 +375,7 @@
     let ry;
     if (hasArt && !full) {
       const ay = y + 58, ah = layout === 'land' ? 600 : layout === 'strip' ? 280 : 560;
-      artRect = { x: m, y: ay, w: cw, h: ah };
+      artRect = { x: m, y: ay, w: cw, h: ah }; lastArtRect = artRect;
       if (img) { const art = processArt(cw, ah, s, st, paper); ctx.imageSmoothingEnabled = false; ctx.drawImage(art, m, ay, cw, ah); ctx.imageSmoothingEnabled = true; }
       else { ctx.strokeStyle = 'rgba(18,18,18,0.35)'; ctx.setLineDash([6, 6]); ctx.strokeRect(m, ay, cw, ah); ctx.setLineDash([]);
         ctx.font = `400 20px ${FONTS.sans}`; ctx.textAlign = 'center'; ctx.fillStyle = 'rgba(18,18,18,0.5)'; ctx.fillText('picture', W / 2, ay + ah / 2); ctx.fillStyle = rgb(INK); }
@@ -632,6 +633,32 @@
 
   const preview = $('preview');
   const schedule = () => { clearTimeout(timer); timer = setTimeout(() => render(preview, 1), 60); };
+
+  // ---------- drag the picture on the preview (drives the Offset X/Y sliders) ----------
+  const toCard = e => { const b = preview.getBoundingClientRect(); return { x: (e.clientX - b.left) * W / b.width, y: (e.clientY - b.top) * H / b.height }; };
+  const overArt = p => img && lastArtRect && p.x >= lastArtRect.x && p.x <= lastArtRect.x + lastArtRect.w && p.y >= lastArtRect.y && p.y <= lastArtRect.y + lastArtRect.h;
+  const setOffset = (id, v) => { const el = $(id); el.value = clamp(v, -1, 1); el.parentElement.querySelector('output').textContent = parseFloat(el.value).toFixed(2); };
+  let drag = null;
+  preview.addEventListener('pointerdown', e => {
+    const p = toCard(e); if (!overArt(p) || e.button > 0) return;
+    const st = S(), a = lastArtRect;
+    const base = st.fit === 'cover' ? Math.max(a.w / img.width, a.h / img.height) : Math.min(a.w / img.width, a.h / img.height);
+    const dw = img.width * base * st.zoom, dh = img.height * base * st.zoom;
+    // offset 1.0 moves the picture by half the size difference; sign flips when the picture is smaller than the frame
+    drag = { p, ox: st.offx, oy: st.offy, kx: dw > a.w ? -2 / (dw - a.w) : 2 / Math.max(1e-6, a.w - dw),
+             ky: dh > a.h ? -2 / (dh - a.h) : 2 / Math.max(1e-6, a.h - dh) };
+    preview.setPointerCapture(e.pointerId); preview.style.cursor = 'grabbing'; e.preventDefault();
+  });
+  preview.addEventListener('pointermove', e => {
+    const p = toCard(e);
+    if (!drag) { preview.style.cursor = overArt(p) ? 'grab' : ''; return; }
+    if (isFinite(drag.kx) && Math.abs(drag.kx) < 1e5) setOffset('offx', drag.ox + (p.x - drag.p.x) * drag.kx);
+    if (isFinite(drag.ky) && Math.abs(drag.ky) < 1e5) setOffset('offy', drag.oy + (p.y - drag.p.y) * drag.ky);
+    schedule();
+  });
+  const endDrag = e => { if (!drag) return; drag = null; preview.style.cursor = overArt(toCard(e)) ? 'grab' : ''; };
+  preview.addEventListener('pointerup', endDrag);
+  preview.addEventListener('pointercancel', endDrag);
 
   for (const id of ids) {
     const el = $(id);
