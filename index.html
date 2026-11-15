@@ -796,15 +796,15 @@
     'mountain','storm','witch','king','queen','ruins','lion','raven','sea monster','cathedral','battle','wizard','horse','moon','tiger','giant'];
   const PD_SOURCES = {
     async commons(q, page) {
-      // Commons has no license filter in search, so over-fetch and keep public domain / CC0 files only.
+      // Search only files carrying a public domain / CC0 template, then double-check the license field.
       const u = 'https://commons.wikimedia.org/w/api.php?action=query&format=json&origin=*&generator=search&gsrnamespace=6&gsrlimit=50&gsroffset=' + page * 50
-        + '&gsrsearch=' + encodeURIComponent(q + ' filetype:bitmap')
+        + '&gsrsearch=' + encodeURIComponent(q + ' filetype:bitmap hastemplate:"PD-Art|PD-old|PD-old-100|PD-US|PD-US-expired|PD-scan|PD-author|PD-self|PD-USGov|CC-zero"')
         + '&prop=imageinfo&iiprop=url|extmetadata&iiextmetadatafilter=LicenseShortName|Artist|ObjectName&iiurlwidth=1400';
       const j = await getJSON(u);
       return Object.values(j.query?.pages || {}).sort((a, b) => a.index - b.index).flatMap(p => {
         const ii = p.imageinfo?.[0], md = ii?.extmetadata || {}, lic = md.LicenseShortName?.value || '';
         if (!ii || !/public domain|^pd|cc0/i.test(lic)) return [];
-        const thumb = ii.thumburl.replace(/\/\d+px-/, '/300px-');
+        const thumb = ii.thumburl.replace(/\/\d+px-/, '/330px-');   // Commons only serves standard thumb widths (250, 330, 500…)
         return [{ thumb, full: ii.thumburl, title: stripTags(md.ObjectName?.value) || p.title.replace(/^File:|\.\w+$/g, ''),
           credit: stripTags(md.Artist?.value), license: lic, page: ii.descriptionurl }];
       });
@@ -854,7 +854,7 @@
       const label = [r.title, r.credit].filter(Boolean).join(' · ') + (r.license ? ` (${r.license})` : '');
       b.title = label;
       const im = document.createElement('img'); im.src = r.thumb; im.alt = r.title; im.loading = 'lazy';
-      im.onerror = () => b.remove();
+      im.onerror = () => { b.remove(); const n = grid.children.length; pdStatus(n ? `${n} result(s). Click one to use it.` : 'No images could be shown. Try other words.'); };
       b.appendChild(im); b.addEventListener('click', () => loadRemote(r.full, r.fallback, label));
       grid.appendChild(b);
     }
