@@ -409,7 +409,7 @@
   <details open>
     <summary><span class="t">Export</span></summary>
     <label for="dpi">Resolution</label>
-    <select id="dpi"><option value="1">300 dpi (744 × 1039)</option><option value="2">600 dpi (1488 × 2079)</option></select>
+    <select id="dpi"><option value="1">300 dpi (744 × 1039)</option><option value="2" selected>600 dpi (1488 × 2079)</option></select>
     <div class="actions" style="margin-top:10px">
       <button id="download" type="button">Download PNG</button>
       <button class="secondary" id="reset" type="button">Clear card</button>
@@ -468,7 +468,7 @@
                'customFlag','customName','name','cost','pt','type','rules','flavor','annotation','number','setcode','footer',
                'fit','zoom','offx','offy','dither','dot','contrast','bright','invert','artBorder',
                'grain','toner','specks','vignette','yellow','band',
-               'scratch','tape','drops','thumbs','smears','miscut','crimps','dpi'];
+               'scratch','tape','drops','thumbs','smears','miscut','crimps'];
   let img = null, imgData = null, seed = 1, timer = null, collection = [], lastArtRect = null;
 
   const S = () => { const o = {}; for (const id of ids) { const el = $(id);
