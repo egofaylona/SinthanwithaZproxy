@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <title>Sinthan's but with a Z proxy builder</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -217,14 +217,70 @@
   ::-webkit-scrollbar-corner{background:var(--plat)}
   @supports not selector(::-webkit-scrollbar){ *{scrollbar-color:#a2aaf0 #aeaeae} }
 
+  /* ---------- phone / small tablet ----------
+     The card preview is pinned under the menu bar so every slider shows its effect live;
+     the control windows scroll beneath it. Tap the Proxy title bar to roll the preview up. */
   @media (max-width:900px){
-    body{grid-template-columns:1fr;grid-template-rows:auto auto 1fr;overflow:auto;height:auto}
-    .menubar{position:sticky;top:0;padding:0 4px}
-    .menubar .menu > button{padding:0 8px}
-    aside{overflow:visible;padding:14px 16px 8px}
-    main{padding:8px 16px 32px}
-    #preview{max-height:80vh}
+    html,body{height:auto}
+    body{display:flex;flex-direction:column;overflow:visible;min-height:100%;
+      padding-left:env(safe-area-inset-left);padding-right:env(safe-area-inset-right)}
+    .menubar{position:sticky;top:0;height:36px;padding:0 4px;order:0}
+    .menubar{font-size:17px}
+    .menubar .glyph{padding:0 6px 0 2px}
+    .menubar .menu > button,.menubar > .app{padding:0 7px;white-space:nowrap}
+    .pd-row{grid-template-columns:1fr}
+    .menubar li button{padding:12px 20px}
+    .status:empty{min-height:0;margin:0}
+    main{order:1;position:sticky;top:36px;z-index:10;display:flex;align-items:flex-start;justify-content:center;
+      padding:6px 12px;overflow:visible;background:var(--desk);border-bottom:1px solid var(--edge)}
+    aside{order:2;overflow:visible;padding:14px 12px max(40px,calc(env(safe-area-inset-bottom) + 24px))}
+    .win.card{display:flex;width:100%;max-width:420px;margin:0}
+    .infobar,.vbar,.hbar,.grow{display:none}
+    .pane{display:block;margin:0 -6px}
+    .pane .doc{padding:6px}
+    #preview{height:26vh;min-height:150px;width:auto;max-width:100%;max-height:none;margin:0 auto}
+    .win.card .titlebar{cursor:pointer;height:32px}
+    .win.card .titlebar::before,.win.card .titlebar::after{top:10px}
+    .win.card.shaded .pane{display:none}
+    .quick{padding:8px 0 2px;flex-wrap:nowrap;gap:6px}
+    .quick button{flex:1;margin:3px 0}
     input[type=text],textarea,select{font-size:16px}
+  }
+  /* touch: 44px targets, no 300ms tap delay, no grey tap flash */
+  @media (pointer:coarse){
+    button,summary,input,select,textarea,label{touch-action:manipulation;-webkit-tap-highlight-color:transparent}
+    button{min-height:44px;padding:6px 14px}
+    .menubar .menu > button,.menubar > .app{min-height:0}
+    .menubar li button{min-height:44px}
+    input[type=text],select{min-height:44px}
+    summary{height:40px}
+    summary::before,summary::after{top:14px}
+    details.fixed > summary::before,details.fixed > summary::after{display:none}
+    details.sub > summary{height:auto;min-height:44px;display:flex;align-items:center;justify-content:flex-start;padding:6px 0 6px 20px;font-size:14px}
+    details.sub > summary::before{top:50%;margin-top:-5px}
+    details.sub[open] > summary::before{top:50%;margin-top:-3px}
+    input[type=range]{height:44px}
+    input[type=range]::-webkit-slider-runnable-track{height:8px}
+    input[type=range]::-webkit-slider-thumb{width:18px;height:28px;margin-top:-11px;background:var(--slider) center/100% 100% no-repeat}
+    input[type=range]:active::-webkit-slider-thumb{background:var(--slider-on) center/100% 100% no-repeat}
+    input[type=range]::-moz-range-thumb{width:18px;height:28px;background:var(--slider) center/100% 100% no-repeat}
+    .range{grid-template-columns:1fr 52px}
+    .check{min-height:44px;margin:0;gap:12px}
+    .check label{flex:1;padding:10px 0;margin:0;font-size:14px}
+    input[type=checkbox]{width:22px;height:22px}
+    input[type=checkbox]:checked{background-size:18px}
+    .ac-list div{padding:12px 10px}
+    .colitem{padding:6px 8px}
+    .colitem button{min-height:36px}
+    label,.hint,.status,.range label{font-size:14px}
+  }
+  /* phone held sideways: card left, controls right, both full height */
+  @media (max-width:900px) and (orientation:landscape) and (max-height:520px){
+    body{display:grid;grid-template-columns:minmax(0,5fr) minmax(0,6fr);grid-template-rows:36px minmax(0,1fr);height:100vh;overflow:hidden}
+    .menubar{grid-column:1/-1}
+    main{grid-column:1;grid-row:2;position:static;overflow:auto;align-items:center;border-bottom:0;border-right:1px solid var(--edge)}
+    aside{grid-column:2;grid-row:2;overflow-y:auto}
+    #preview{height:calc(100vh - 36px - 32px - 64px - 28px);min-height:120px}
   }
 </style>
 </head>
@@ -294,7 +350,7 @@
     <div class="drop" id="drop"><input type="file" id="file" accept="image/*">Click, drop or paste an image</div>
     <details class="sub" open>
     <summary>Search public domain images</summary>
-    <div class="row">
+    <div class="row pd-row">
       <div><input type="text" id="pdQuery" placeholder="e.g. monk, dragon, castle"></div>
       <div><div class="actions">
         <select id="pdSource" aria-label="Image source"><option value="commons">Wikimedia Commons</option><option value="loc">Library of Congress</option></select>
@@ -956,6 +1012,15 @@
   for (const id in DAMAGE) $(id).addEventListener('input', syncDial);
   $('shuffleAging').addEventListener('click', syncDial);
   $('resetPos').addEventListener('click', () => { setCtl('offx', 0); setCtl('offy', 0); schedule(); });
+
+  // phones: tap the Proxy title bar to roll the pinned preview up and get the whole screen for controls
+  { const win = document.querySelector('.win.card'), tb = win.querySelector('.titlebar'), mq = matchMedia('(max-width:900px)');
+    const sync = () => { if (mq.matches) { tb.setAttribute('role', 'button'); tb.tabIndex = 0; tb.setAttribute('aria-expanded', String(!win.classList.contains('shaded'))); }
+      else { tb.removeAttribute('role'); tb.removeAttribute('tabindex'); tb.removeAttribute('aria-expanded'); win.classList.remove('shaded'); } };
+    const toggle = () => { if (!mq.matches) return; win.classList.toggle('shaded'); sync(); };
+    tb.addEventListener('click', toggle);
+    tb.addEventListener('keydown', e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); toggle(); } });
+    mq.addEventListener('change', sync); sync(); }
 
   $('reroll').addEventListener('click', () => { seed = (seed * 16807 + 11) % 2147483647; schedule(); });
   $('download').addEventListener('click', () => {
