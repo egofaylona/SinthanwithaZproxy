@@ -18,6 +18,8 @@
     --arrow-down:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 15 15' shape-rendering='crispEdges'%3E%3Cpath d='M7.5 12.5l6-6h-3v-4h-6v4h-3z' fill='%23fff' stroke='%23000'/%3E%3C/svg%3E");
     --arrow-left:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 15 15' shape-rendering='crispEdges'%3E%3Cpath d='M2.5 7.5l6-6v3h4v6h-4v3z' fill='%23fff' stroke='%23000'/%3E%3C/svg%3E");
     --arrow-right:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 15 15' shape-rendering='crispEdges'%3E%3Cpath d='M12.5 7.5l-6-6v3h-4v6h4v3z' fill='%23fff' stroke='%23000'/%3E%3C/svg%3E");
+    /* Mac OS 9 highlight blue, used only for primary actions */
+    --os9-blue-hi:#8aa2ee; --os9-blue:#3a5fd4; --os9-blue-lo:#2442ae; --os9-navy:#0d1f66;
     --popup:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='9' height='5' shape-rendering='crispEdges'%3E%3Cpath d='M0 0h9L4.5 5z'/%3E%3C/svg%3E");
   }
   *{box-sizing:border-box}
@@ -113,8 +115,13 @@
 
   /* push buttons: rounded rectangles; the default button gets the thick outer ring */
   button{padding:3px 13px;min-height:24px;border:1px solid var(--ink);border-radius:7px;background:var(--paper);color:var(--ink);font:400 18px/1.1 var(--chicago);cursor:pointer}
-  .actions > button:not(.secondary){margin:3px;box-shadow:0 0 0 2px var(--paper),0 0 0 4px var(--ink)}
   button:active{background:var(--ink);color:var(--paper)}
+  /* primary actions: OS 9 blue bevel inside the default-button ring */
+  .actions > button:not(.secondary){margin:3px;border-color:var(--os9-navy);color:var(--paper);text-shadow:0 1px 0 var(--os9-navy);
+    background:linear-gradient(var(--os9-blue-hi),var(--os9-blue) 45%,var(--os9-blue-lo) 55%,var(--os9-blue));
+    box-shadow:inset 1px 1px 0 rgba(255,255,255,.5),inset -1px -1px 0 rgba(13,31,102,.45),0 0 0 2px var(--paper),0 0 0 4px var(--ink)}
+  .actions > button:not(.secondary):active{background:linear-gradient(var(--os9-blue-lo),var(--os9-navy));
+    box-shadow:inset 1px 1px 0 rgba(0,0,0,.35),0 0 0 2px var(--paper),0 0 0 4px var(--ink)}
   button:focus-visible{outline:2px dotted var(--ink);outline-offset:3px}
   .actions > button:not(.secondary):focus-visible{outline-offset:6px}
   .actions{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
