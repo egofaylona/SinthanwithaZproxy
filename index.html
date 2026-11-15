@@ -78,6 +78,12 @@
   /* windows: platinum frame, 1px dark edge, bevel inside */
   details,.win{background:var(--plat);border:1px solid var(--edge);box-shadow:var(--bevel),1px 1px 0 rgba(0,0,0,.35);margin:0 0 14px;padding:0 12px 12px}
   details:not([open]){padding-bottom:0}
+  /* sub-groups inside a window: plain disclosure, no window chrome */
+  details.sub{background:none;border:0;box-shadow:none;margin:10px 0 0;padding:0}
+  details.sub > summary{display:block;height:auto;margin:0;padding:2px 0 2px 16px;border:0;background:none;font:12px/1.4 var(--geneva);color:var(--ink);text-align:left;cursor:pointer}
+  details.sub > summary::before{left:0;top:5px;width:0;height:0;border:5px solid transparent;border-left:7px solid var(--ink);border-right:0;background:none;box-shadow:none}
+  details.sub[open] > summary::before{top:7px;left:-1px;border:5px solid transparent;border-top:7px solid var(--ink);border-bottom:0}
+  details.sub > summary::after{display:none}
 
   /* title bars: pinstripes, close box left, zoom + collapse boxes right; a closed panel is a collapsed window */
   summary,.titlebar{position:relative;display:flex;align-items:center;justify-content:center;height:21px;margin:0 -12px 10px;padding:0 44px 0 28px;
@@ -264,33 +270,34 @@
           <option value="poker">Taped on a poker card</option>
         </select></div>
     </div>
-    <div class="row">
-      <div><label for="headFont">Title font</label>
-        <select id="headFont">
-          <option value="sans">Grotesk sans (Helvetica/Arial)</option>
-          <option value="basker">Baskerville</option>
-          <option value="times">Times</option>
-          <option value="mono">Word processor (Courier)</option>
-        </select></div>
-      <div><label for="bodyFont">Text font</label>
-        <select id="bodyFont">
-          <option value="basker">Baskerville</option>
-          <option value="times">Times</option>
-          <option value="sans">Grotesk sans</option>
-          <option value="mono">Word processor (Courier)</option>
-        </select></div>
-    </div>
-    <div class="row">
-      <div><label for="rulesStyle">Rules text case</label>
-        <select id="rulesStyle"><option value="normal">As typed</option><option value="caps">Uppercase</option></select></div>
-      <div><label for="pokerColor">Poker card color</label>
-        <select id="pokerColor"><option value="red">Red</option><option value="blue">Blue</option></select></div>
-    </div>
-    <div class="range"><label>Title size</label><span></span><input type="range" id="titleSize" min="0.6" max="1.6" step="0.05" value="1"><output>1.00</output></div>
-    <div class="range"><label>Type line size</label><span></span><input type="range" id="typeSize" min="0.6" max="1.6" step="0.05" value="1"><output>1.00</output></div>
-    <div class="range"><label>Rules text size</label><span></span><input type="range" id="rulesSize" min="0.6" max="1.6" step="0.05" value="1"><output>1.00</output></div>
-    <div class="check"><input type="checkbox" id="rulesFit" checked><label for="rulesFit">Grow rules text to fill the box (up to 1.75&times;)</label></div>
-    <p class="hint">Rules text always shrinks if it doesn't fit the box.</p>
+    <div id="pokerWrap" hidden><label for="pokerColor">Poker card color</label>
+      <select id="pokerColor"><option value="red">Red</option><option value="blue">Blue</option></select></div>
+    <details class="sub">
+      <summary>Type and sizes</summary>
+      <div class="row">
+        <div><label for="headFont">Title font</label>
+          <select id="headFont">
+            <option value="sans">Grotesk sans (Helvetica/Arial)</option>
+            <option value="basker">Baskerville</option>
+            <option value="times">Times</option>
+            <option value="mono">Word processor (Courier)</option>
+          </select></div>
+        <div><label for="bodyFont">Text font</label>
+          <select id="bodyFont">
+            <option value="basker">Baskerville</option>
+            <option value="times">Times</option>
+            <option value="sans">Grotesk sans</option>
+            <option value="mono">Word processor (Courier)</option>
+          </select></div>
+      </div>
+      <label for="rulesStyle">Rules text case</label>
+      <select id="rulesStyle"><option value="normal">As typed</option><option value="caps">Uppercase</option></select>
+      <div class="range"><label>Title size</label><span></span><input type="range" id="titleSize" min="0.6" max="1.6" step="0.05" value="1"><output>1.00</output></div>
+      <div class="range"><label>Type line size</label><span></span><input type="range" id="typeSize" min="0.6" max="1.6" step="0.05" value="1"><output>1.00</output></div>
+      <div class="range"><label>Rules text size</label><span></span><input type="range" id="rulesSize" min="0.6" max="1.6" step="0.05" value="1"><output>1.00</output></div>
+      <div class="check"><input type="checkbox" id="rulesFit" checked><label for="rulesFit">Grow rules text to fill the box (up to 1.75&times;)</label></div>
+      <p class="hint">Rules text always shrinks if it doesn't fit the box.</p>
+    </details>
   </details>
 
   <details>
@@ -312,14 +319,17 @@
     <textarea id="rules" placeholder="Rules text. Blank line = new paragraph. Use TAP for the tap symbol."></textarea>
     <label for="flavor">Flavor text</label>
     <textarea id="flavor" style="min-height:44px" placeholder="Optional"></textarea>
-    <div class="row">
-      <div><label for="annotation">Handwritten note</label><input type="text" id="annotation" placeholder="e.g. RIP"></div>
-      <div><label for="number">Collector number</label><input type="text" id="number" placeholder="0001"></div>
-    </div>
-    <div class="row">
-      <div><label for="setcode">Set code</label><input type="text" id="setcode" placeholder="PRX"></div>
-      <div><label for="footer">Footer text (right)</label><input type="text" id="footer" placeholder="proxy — not for sale"></div>
-    </div>
+    <details class="sub">
+      <summary>Print details</summary>
+      <div class="row">
+        <div><label for="annotation">Handwritten note</label><input type="text" id="annotation" placeholder="e.g. RIP"></div>
+        <div><label for="number">Collector number</label><input type="text" id="number" placeholder="0001"></div>
+      </div>
+      <div class="row">
+        <div><label for="setcode">Set code</label><input type="text" id="setcode" placeholder="PRX"></div>
+        <div><label for="footer">Footer text (right)</label><input type="text" id="footer" placeholder="proxy — not for sale"></div>
+      </div>
+    </details>
   </details>
 
   <details>
@@ -862,11 +872,14 @@
   preview.addEventListener('pointerup', endDrag);
   preview.addEventListener('pointercancel', endDrag);
 
+  const syncPoker = () => { $('pokerWrap').hidden = $('treat').value !== 'poker'; };
+  syncPoker();
   for (const id of ids) {
     const el = $(id);
     el.addEventListener('input', () => {
       if (el.type === 'range') el.parentElement.querySelector('output').textContent = el.step === '1' ? el.value : parseFloat(el.value).toFixed(2);
       if (id === 'customFlag') $('customWrap').hidden = !el.checked;
+      if (id === 'treat') syncPoker();
       schedule();
     });
   }
@@ -1114,6 +1127,7 @@
       if (el.type === 'checkbox') el.checked = !!st[id]; else el.value = st[id];
       if (el.type === 'range') el.parentElement.querySelector('output').textContent = el.step === '1' ? el.value : parseFloat(el.value).toFixed(2); }
     $('customWrap').hidden = !$('customFlag').checked;
+    syncPoker();
   }
 
   function drawList() {
