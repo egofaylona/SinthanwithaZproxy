@@ -241,7 +241,6 @@
     </div>
     <label for="printing">Printing</label>
     <select id="printing" disabled><option>Load a card first</option></select>
-    <div class="check"><input type="checkbox" id="useArt"><label for="useArt">Use printed artwork</label></div>
     <div class="status" id="status"></div>
   </details>
 
@@ -937,6 +936,7 @@
   });
   function fillFrom(card) {
     const face = card.card_faces && card.card_faces.length && !card.oracle_text ? card.card_faces[0] : card;
+    $('lookup').value = card.name || '';
     $('name').value = face.name || card.name || '';
     $('cost').value = cost(face.mana_cost);
     $('type').value = face.type_line || card.type_line || '';
@@ -950,9 +950,9 @@
     else if ($('layout').value === 'land') $('layout').value = 'standard';
     schedule();
     loaded = { card, face };
-    status(`Loaded ${card.name} (${card.set_name}).${$('useArt').checked ? '' : ' Tick "Use printed artwork" to load its picture.'}`);
+    status(`Loaded ${card.name} (${card.set_name}).`);
     loadPrintings(card);
-    if ($('useArt').checked) loadArt();
+    loadArt();
   }
   const sleep = ms => new Promise(r => setTimeout(r, ms));
   async function loadPrintings(card) {
@@ -1016,7 +1016,6 @@
     const q = $('lookup').value.trim(); if (!q) { status('Enter a card name.'); return; }
     loadCard(`${API}/cards/named?fuzzy=${encodeURIComponent(q)}`);
   }
-  $('useArt').addEventListener('change', () => { if ($('useArt').checked && loaded) loadArt(); });
   $('lookup').addEventListener('keydown', e => { if (e.key === 'Enter' && !e.defaultPrevented) loadByName(); });
   $('randomCard').addEventListener('click', () => loadCard(`${API}/cards/random`));
 
