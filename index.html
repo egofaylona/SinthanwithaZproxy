@@ -112,6 +112,10 @@
       <div><label for="pokerColor">Poker card color</label>
         <select id="pokerColor"><option value="red">Red</option><option value="blue">Blue</option></select></div>
     </div>
+    <div class="range"><label>Title size</label><span></span><input type="range" id="titleSize" min="0.6" max="1.6" step="0.05" value="1"><output>1.00</output></div>
+    <div class="range"><label>Type line size</label><span></span><input type="range" id="typeSize" min="0.6" max="1.6" step="0.05" value="1"><output>1.00</output></div>
+    <div class="range"><label>Rules text size</label><span></span><input type="range" id="rulesSize" min="0.6" max="1.6" step="0.05" value="1"><output>1.00</output></div>
+    <p class="hint">Rules text still shrinks if it doesn't fit the box.</p>
   </details>
 
   <details>
@@ -234,7 +238,7 @@
   const HAND = '"Segoe Script","Bradley Hand","Comic Sans MS",cursive';
 
   const $ = id => document.getElementById(id);
-  const ids = ['layout','treat','headFont','bodyFont','rulesStyle','pokerColor',
+  const ids = ['layout','treat','headFont','bodyFont','rulesStyle','pokerColor','titleSize','typeSize','rulesSize',
                'customFlag','customName','name','cost','pt','type','rules','flavor','annotation','number','setcode','footer',
                'fit','zoom','offx','offy','dither','dot','contrast','bright','invert','artBorder',
                'grain','toner','specks','vignette','yellow','band',
@@ -329,18 +333,22 @@
 
     // header block (paper box when full-art)
     const custom = st.customFlag && st.customName.trim();
-    if (full) { const top = 50, bottom = (custom ? 122 : 92) + 34 + 16;
+    const tS = st.titleSize || 1, yS = st.typeSize || 1, rS = st.rulesSize || 1;
+    const titlePx = Math.round(40 * tS), subPx = Math.round(24 * tS), typePx = Math.round(25 * yS);
+    const nameY = 52 + titlePx, subGap = 6 + subPx, typeGap = 9 + typePx;
+    if (full) { const top = 50, bottom = nameY + (custom ? subGap : 0) + typeGap + 16;
       ctx.fillStyle = rgb(paper); ctx.fillRect(m - 14, top, cw + 28, bottom - top); ctx.strokeStyle = rgb(INK); ctx.strokeRect(m - 14, top, cw + 28, bottom - top); ctx.fillStyle = rgb(INK); }
 
-    ctx.font = `700 40px ${HEAD}`; ctx.textAlign = 'right';
-    const cost = showCost ? st.cost.trim() : ''; if (cost) ctx.fillText(cost, W - m, 92);
+    ctx.font = `700 ${titlePx}px ${HEAD}`; ctx.textAlign = 'right';
+    const cost = showCost ? st.cost.trim() : ''; if (cost) ctx.fillText(cost, W - m, nameY);
     const costW = cost ? ctx.measureText(cost).width + 18 : 0;
 
-    ctx.textAlign = 'left'; let y = 92;
-    if (custom) { fitText(st.customName, 40, cw - costW, 700, HEAD); ctx.fillText(st.customName, m, y);
-      fitText(st.name, 24, cw - costW - 12, 400, HEAD); ctx.fillText(st.name, m + 12, y + 30); y += 30; }
-    else { fitText(st.name, 40, cw - costW, 700, HEAD); ctx.fillText(st.name, m, y); }
-    fitText(st.type, 25, cw, 400, BODY); ctx.fillText(st.type, m, y + 34);
+    ctx.textAlign = 'left'; let y = nameY;
+    if (custom) { fitText(st.customName, titlePx, cw - costW, 700, HEAD); ctx.fillText(st.customName, m, y);
+      fitText(st.name, subPx, cw - costW - 12, 400, HEAD); ctx.fillText(st.name, m + 12, y + subGap); y += subGap; }
+    else { fitText(st.name, titlePx, cw - costW, 700, HEAD); ctx.fillText(st.name, m, y); }
+    fitText(st.type, typePx, cw, 400, BODY); ctx.fillText(st.type, m, y + typeGap);
+    y += typeGap - 34;  // keep downstream offsets relative to the default type baseline
 
     if (st.annotation.trim()) {
       ctx.save(); ctx.translate(W - m - 10, y + 42); ctx.rotate(-0.14);
@@ -367,7 +375,7 @@
     const rulesTxt = caps ? st.rules.toUpperCase() : st.rules;
     const rh = H - 90 - ry;
     if (full) { ctx.fillStyle = rgb(paper); ctx.fillRect(m - 14, ry - 40, cw + 28, H - 62 - (ry - 40)); ctx.strokeStyle = rgb(INK); ctx.lineWidth = 2; ctx.strokeRect(m - 14, ry - 40, cw + 28, H - 62 - (ry - 40)); ctx.fillStyle = rgb(INK); }
-    let size = layout === 'text' ? 30 : (caps ? 22 : 24), lines, fl, lh;
+    let size = Math.round((layout === 'text' ? 30 : (caps ? 22 : 24)) * rS), lines, fl, lh;
     ctx.textAlign = 'left';
     for (;;) {
       lh = Math.round(size * 1.18);
