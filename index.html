@@ -115,7 +115,8 @@
     <div class="range"><label>Title size</label><span></span><input type="range" id="titleSize" min="0.6" max="1.6" step="0.05" value="1"><output>1.00</output></div>
     <div class="range"><label>Type line size</label><span></span><input type="range" id="typeSize" min="0.6" max="1.6" step="0.05" value="1"><output>1.00</output></div>
     <div class="range"><label>Rules text size</label><span></span><input type="range" id="rulesSize" min="0.6" max="1.6" step="0.05" value="1"><output>1.00</output></div>
-    <p class="hint">Rules text still shrinks if it doesn't fit the box.</p>
+    <div class="check"><input type="checkbox" id="rulesFit" checked><label for="rulesFit">Grow rules text to fill the box (up to 1.75&times;)</label></div>
+    <p class="hint">Rules text always shrinks if it doesn't fit the box.</p>
   </details>
 
   <details>
@@ -238,7 +239,7 @@
   const HAND = '"Segoe Script","Bradley Hand","Comic Sans MS",cursive';
 
   const $ = id => document.getElementById(id);
-  const ids = ['layout','treat','headFont','bodyFont','rulesStyle','pokerColor','titleSize','typeSize','rulesSize',
+  const ids = ['layout','treat','headFont','bodyFont','rulesStyle','pokerColor','titleSize','typeSize','rulesSize','rulesFit',
                'customFlag','customName','name','cost','pt','type','rules','flavor','annotation','number','setcode','footer',
                'fit','zoom','offx','offy','dither','dot','contrast','bright','invert','artBorder',
                'grain','toner','specks','vignette','yellow','band',
@@ -376,6 +377,7 @@
     const rh = H - 90 - ry;
     if (full) { ctx.fillStyle = rgb(paper); ctx.fillRect(m - 14, ry - 40, cw + 28, H - 62 - (ry - 40)); ctx.strokeStyle = rgb(INK); ctx.lineWidth = 2; ctx.strokeRect(m - 14, ry - 40, cw + 28, H - 62 - (ry - 40)); ctx.fillStyle = rgb(INK); }
     let size = Math.round((layout === 'text' ? 30 : (caps ? 22 : 24)) * rS), lines, fl, lh;
+    if (st.rulesFit) size = Math.min(Math.round(size * 1.75), 48);  // start big, shrink until it fits
     ctx.textAlign = 'left';
     for (;;) {
       lh = Math.round(size * 1.18);
