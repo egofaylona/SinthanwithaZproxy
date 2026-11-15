@@ -23,6 +23,9 @@
   *{box-sizing:border-box}
   html,body{margin:0;height:100%}
   ::selection{background:var(--ink);color:var(--paper)}
+  /* Geneva ships in one weight; a hairline stroke gives it a little more body */
+  body,h1 .lbl small{-webkit-text-stroke:.35px currentColor}
+  .menubar,h1,summary,.titlebar,.infobar,.ac-list div,.range output,button{-webkit-text-stroke:0}
   body{font:12px/1.4 var(--geneva);color:var(--ink);background:var(--dither) 0 0/2px 2px var(--paper);caret-color:var(--ink);
     display:grid;grid-template-columns:420px 1fr;grid-template-rows:auto 1fr;height:100vh;overflow:hidden}
 
