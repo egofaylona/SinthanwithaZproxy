@@ -184,8 +184,8 @@
   .pane{display:grid;grid-template-columns:auto 16px;grid-template-rows:auto 16px;margin:0 -6px;border:1px solid var(--edge);background:var(--paper)}
   .pane .doc{padding:16px;display:flex;justify-content:center;min-width:0}
   .grp{margin:14px 0 0;padding-top:6px;border-top:1px solid var(--plat-lo);font:700 12px/1.2 var(--geneva)}
-  .quick .dial{flex:1 1 100%;display:flex;align-items:center;gap:8px;font:12px var(--geneva)}
-  .quick .dial input{flex:1;min-width:80px}
+  .dial{flex:1 1 100%;display:flex;align-items:center;gap:8px;font:12px var(--geneva)}
+  .dial input{flex:1;min-width:80px}
   .quick{justify-content:center;padding:10px 0 4px}
   #preview{display:block;touch-action:none;max-height:calc(100vh - 170px);max-width:100%;background:var(--paper)}
   .vbar,.hbar{display:flex;justify-content:space-between;background:var(--plat)}
@@ -353,24 +353,24 @@
     <div id="pokerWrap" hidden><label for="pokerColor">Poker card color</label>
       <select id="pokerColor"><option value="red">Red</option><option value="blue">Blue</option></select></div>
     <div id="bandWrap" hidden><div class="range"><label>Banding strength</label><span></span><input type="range" id="band" min="0" max="1" step="0.01" value="0.5"><output>0.50</output></div></div>
+    <div class="row">
+      <div><label for="headFont">Title font</label>
+        <select id="headFont">
+          <option value="sans">Grotesk sans (Helvetica/Arial)</option>
+          <option value="basker">Baskerville</option>
+          <option value="times">Times</option>
+          <option value="mono">Word processor (Courier)</option>
+        </select></div>
+      <div><label for="bodyFont">Text font</label>
+        <select id="bodyFont">
+          <option value="basker">Baskerville</option>
+          <option value="times">Times</option>
+          <option value="sans">Grotesk sans</option>
+          <option value="mono">Word processor (Courier)</option>
+        </select></div>
+    </div>
     <details class="sub">
-      <summary>Type and sizes</summary>
-      <div class="row">
-        <div><label for="headFont">Title font</label>
-          <select id="headFont">
-            <option value="sans">Grotesk sans (Helvetica/Arial)</option>
-            <option value="basker">Baskerville</option>
-            <option value="times">Times</option>
-            <option value="mono">Word processor (Courier)</option>
-          </select></div>
-        <div><label for="bodyFont">Text font</label>
-          <select id="bodyFont">
-            <option value="basker">Baskerville</option>
-            <option value="times">Times</option>
-            <option value="sans">Grotesk sans</option>
-            <option value="mono">Word processor (Courier)</option>
-          </select></div>
-      </div>
+      <summary>Fine tune</summary>
       <label for="rulesStyle">Rules text case</label>
       <select id="rulesStyle"><option value="normal">As typed</option><option value="caps">Uppercase</option></select>
       <div class="range"><label>Title size</label><span></span><input type="range" id="titleSize" min="0.6" max="1.6" step="0.05" value="1"><output>1.00</output></div>
@@ -383,13 +383,20 @@
 
   <details>
     <summary><span class="t">Aging</span></summary>
+    <div class="actions">
+      <button class="secondary" id="shuffleAging" type="button">Shuffle aging</button>
+      <button class="secondary" id="reroll" type="button">Re-roll texture</button>
+    </div>
+    <p class="grp">Damage</p>
+    <div class="dial"><label for="damageDial" style="margin:0">Amount</label><input type="range" id="damageDial" min="0" max="100" step="1" value="0" aria-label="Damage amount"><button class="secondary" id="clearDamage" type="button">Clear damage</button></div>
+    <p class="grp">Paper</p>
     <div class="range"><label>Paper grain</label><span></span><input type="range" id="grain" min="0" max="1" step="0.01" value="0.35"><output>0.35</output></div>
-    <div class="range"><label>Toner contrast</label><span></span><input type="range" id="toner" min="0" max="1" step="0.01" value="0.3"><output>0.30</output></div>
-    <div class="range"><label>Ink specks</label><span></span><input type="range" id="specks" min="0" max="1" step="0.01" value="0.3"><output>0.30</output></div>
-    <div class="range"><label>Edge darkening</label><span></span><input type="range" id="vignette" min="0" max="1" step="0.01" value="0.25"><output>0.25</output></div>
     <div class="range"><label>Paper yellowing</label><span></span><input type="range" id="yellow" min="0" max="1" step="0.01" value="0.5"><output>0.50</output></div>
     <details class="sub">
-      <summary>Damage</summary>
+      <summary>Fine tune</summary>
+      <div class="range"><label>Toner contrast</label><span></span><input type="range" id="toner" min="0" max="1" step="0.01" value="0.3"><output>0.30</output></div>
+      <div class="range"><label>Ink specks</label><span></span><input type="range" id="specks" min="0" max="1" step="0.01" value="0.3"><output>0.30</output></div>
+      <div class="range"><label>Edge darkening</label><span></span><input type="range" id="vignette" min="0" max="1" step="0.01" value="0.25"><output>0.25</output></div>
       <div class="range"><label>Pencil scratches</label><span></span><input type="range" id="scratch" min="0" max="1" step="0.01" value="0.3"><output>0.30</output></div>
       <div class="range"><label>Tape pieces</label><span></span><input type="range" id="tape" min="0" max="6" step="1" value="2"><output>2</output></div>
       <div class="range"><label>Ink drops</label><span></span><input type="range" id="drops" min="0" max="8" step="1" value="0"><output>0</output></div>
@@ -398,7 +405,6 @@
       <div class="range"><label>Miscut</label><span></span><input type="range" id="miscut" min="0" max="1" step="0.01" value="0"><output>0.00</output></div>
       <div class="range"><label>Crimps</label><span></span><input type="range" id="crimps" min="0" max="3" step="1" value="0"><output>0</output></div>
     </details>
-    <div class="actions" style="margin-top:8px"><button class="secondary" id="reroll" type="button">Re-roll texture</button></div>
   </details>
 
   <details>
@@ -456,8 +462,6 @@
     <div class="quick actions" role="group" aria-label="Quick controls">
       <button id="download" type="button">Download PNG</button>
       <button class="secondary" id="shuffleLook" type="button">Shuffle look</button>
-      <button class="secondary" id="shuffleAging" type="button">Shuffle aging</button>
-      <div class="dial"><label for="damageDial" style="margin:0">Damage</label><input type="range" id="damageDial" min="0" max="100" step="1" value="0" aria-label="Damage amount"><button class="secondary" id="clearDamage" type="button">Clear damage</button></div>
     </div>
   </div>
 </main>
