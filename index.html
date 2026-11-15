@@ -237,6 +237,7 @@
       <div><label for="lookupSet">Printing set code (optional)</label><input type="text" id="lookupSet" placeholder="e.g. lea, slz"></div>
       <div><label>&nbsp;</label><div class="actions"><button id="loadArt" type="button">Load artwork</button><button class="secondary" id="randomCard" type="button">Random</button></div></div>
     </div>
+    <div id="printingWrap" hidden><label for="printing">Printing</label><select id="printing"></select></div>
     <div class="status" id="status"></div>
   </details>
 
@@ -905,7 +906,7 @@
   };
   const cost = c => (c || '').replace(/\{([^}]+)\}/g, (_, t) => symbol(t));
   const oracle = t => (t || '').replace(/\{([^}]+)\}/g, (_, t) => symbol(t));
-  let acTimer = null, loaded = null;
+  let acTimer = null, loaded = null, scryImg = null, printings = [], printKey = null, printSeq = 0;
   $('lookup').addEventListener('input', () => {
     clearTimeout(acTimer); const q = $('lookup').value.trim(); if (q.length < 2) return;
     acTimer = setTimeout(async () => {
@@ -946,7 +947,45 @@
     schedule();
     loaded = { card, face };
     status(`Loaded ${card.name} (${card.set_name}). "Load artwork" loads its printed picture.`);
+    loadPrintings(card);
   }
+  const sleep = ms => new Promise(r => setTimeout(r, ms));
+  async function loadPrintings(card) {
+    const key = card.oracle_id || card.prints_search_uri;
+    if (key && key === printKey) { $('printing').value = card.id; return; }   // same oracle card: keep the list
+    const seq = ++printSeq; printKey = null;
+    $('printingWrap').hidden = true; $('printing').innerHTML = '';
+    if (!card.prints_search_uri) return;
+    const all = [];
+    try {
+      let url = card.prints_search_uri;
+      while (url && all.length < 175) {
+        const r = await fetch(url); const j = await r.json();
+        if (seq !== printSeq) return;
+        if (j.object === 'error') throw new Error(j.details);
+        all.push(...j.data);
+        url = j.has_more ? j.next_page : null;
+        if (url) await sleep(100);
+      }
+      if (seq !== printSeq) return;
+    } catch (e) { if (seq === printSeq) status('Could not load other printings.'); return; }
+    if (!all.length) return;
+    const sel = $('printing'); sel.innerHTML = '';
+    for (const c of all) {
+      const o = document.createElement('option'); o.value = c.id;
+      o.textContent = `${c.set_name} (${(c.set || '').toUpperCase()}) #${c.collector_number}` + (c.released_at ? ` \u00B7 ${c.released_at.slice(0, 4)}` : '');
+      sel.appendChild(o);
+    }
+    printings = all; printKey = key;
+    sel.value = card.id;
+    $('printingWrap').hidden = false;
+  }
+  $('printing').addEventListener('change', () => {
+    const c = printings.find(p => p.id === $('printing').value); if (!c) return;
+    const hadArt = scryImg && img === scryImg;
+    fillFrom(c);
+    if (hadArt) loadArt();
+  });
   function loadArt() {
     if (!loaded) { status('Load a card first.'); return; }
     const { card, face } = loaded, uris = face.image_uris || card.image_uris;
@@ -954,7 +993,7 @@
     status('Loading artwork…');
     const im = new Image(); im.crossOrigin = 'anonymous';
     im.onload = () => {
-      img = im; imgData = null;
+      img = im; scryImg = im; imgData = null;
       try { const c = document.createElement('canvas'); c.width = im.naturalWidth; c.height = im.naturalHeight;
         c.getContext('2d').drawImage(im, 0, 0); imgData = c.toDataURL('image/jpeg', 0.92); } catch (err) { /* tainted canvas */ }
       schedule(); status(`Artwork of ${card.name} (${card.set_name}) loaded.`);
