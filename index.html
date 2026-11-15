@@ -4,67 +4,201 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>Sinthan's but with a Z proxy builder</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Pixelify+Sans:wght@400..700&display=swap">
 <style>
-  :root{ --bench:#cfd2d6; --panel:#eceef0; --line:#8a8f96; --ink:#141414; --mute:#5b6067; --field:#ffffff; }
+  /* 1984 Macintosh desktop: 1-bit, black on white, nothing in between */
+  :root{
+    --ink:#000; --paper:#fff; --mute:#000;
+    --chicago:"Pixelify Sans",Chicago,"Charcoal",ui-monospace,monospace;
+    --geneva:Geneva,Verdana,"DejaVu Sans",sans-serif;
+    --dither:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='2' height='2' shape-rendering='crispEdges'%3E%3Crect width='2' height='2' fill='%23fff'/%3E%3Cpath d='M0 0h1v1H0zM1 1h1v1H1z'/%3E%3C/svg%3E");
+    --arrow-up:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 15 15' shape-rendering='crispEdges'%3E%3Cpath d='M7.5 2.5l6 6h-3v4h-6v-4h-3z' fill='%23fff' stroke='%23000'/%3E%3C/svg%3E");
+    --arrow-down:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 15 15' shape-rendering='crispEdges'%3E%3Cpath d='M7.5 12.5l6-6h-3v-4h-6v4h-3z' fill='%23fff' stroke='%23000'/%3E%3C/svg%3E");
+    --arrow-left:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 15 15' shape-rendering='crispEdges'%3E%3Cpath d='M2.5 7.5l6-6v3h4v6h-4v3z' fill='%23fff' stroke='%23000'/%3E%3C/svg%3E");
+    --arrow-right:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 15 15' shape-rendering='crispEdges'%3E%3Cpath d='M12.5 7.5l-6-6v3h-4v6h4v3z' fill='%23fff' stroke='%23000'/%3E%3C/svg%3E");
+    --popup:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='9' height='5' shape-rendering='crispEdges'%3E%3Cpath d='M0 0h9L4.5 5z'/%3E%3C/svg%3E");
+  }
   *{box-sizing:border-box}
   html,body{margin:0;height:100%}
-  body{font:14px/1.45 "Helvetica Neue",Helvetica,Arial,sans-serif;color:var(--ink);background:var(--bench);
-    display:grid;grid-template-columns:410px 1fr;height:100vh;overflow:hidden}
-  aside{background:var(--panel);border-right:1px solid var(--line);overflow-y:auto;padding:18px 20px 40px}
-  main{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:14px;padding:20px;overflow:auto}
-  h1{font-size:15px;font-weight:700;margin:0 0 14px}
-  details{border:1px solid var(--line);background:var(--field);margin:0 0 10px;padding:0 12px 10px;border-radius:3px}
+  ::selection{background:var(--ink);color:var(--paper)}
+  body{font:12px/1.4 var(--geneva);color:var(--ink);background:var(--dither) 0 0/2px 2px var(--paper);caret-color:var(--ink);
+    -webkit-font-smoothing:none;
+    display:grid;grid-template-columns:420px 1fr;grid-template-rows:auto 1fr;height:100vh;overflow:hidden}
+
+  /* menu bar */
+  .menubar{grid-column:1/-1;position:relative;z-index:20;display:flex;align-items:stretch;height:22px;padding:0 10px;
+    background:var(--paper);border-bottom:1px solid var(--ink);font:500 15px/1 var(--chicago)}
+  .menubar .glyph{display:flex;align-items:center;padding:0 10px 0 4px}
+  .menubar .menu{position:relative}
+  .menubar .menu > button{height:100%;padding:0 10px;border:0;border-radius:0;background:none;color:var(--ink);font:inherit;box-shadow:none}
+  .menubar .menu.open > button,.menubar .menu > button:active{background:var(--ink);color:var(--paper)}
+  .menubar ul{display:none;position:absolute;left:0;top:100%;margin:0;padding:2px 0;list-style:none;min-width:190px;
+    background:var(--paper);border:1px solid var(--ink);box-shadow:2px 2px 0 var(--ink)}
+  .menubar .menu.open ul{display:block}
+  .menubar li button{display:block;width:100%;text-align:left;padding:3px 18px;border:0;border-radius:0;background:none;color:var(--ink);font:inherit;box-shadow:none;white-space:nowrap}
+  .menubar li button:hover,.menubar li button:focus-visible{background:var(--ink);color:var(--paper);outline:0}
+  .menubar li.sep{height:1px;margin:3px 0;background:var(--dither) 0 0/2px 2px}
+
+  /* the control column: a stack of windows on the desktop */
+  aside{overflow-y:auto;padding:16px 18px 48px}
+  main{display:flex;align-items:center;justify-content:center;padding:20px;overflow:auto}
+
+  h1{display:flex;align-items:center;gap:10px;margin:0 0 16px;font:500 15px/1.2 var(--chicago)}
+  h1 .disk{flex:none}
+  h1 .lbl{display:flex;flex-direction:column;align-items:flex-start;gap:3px}
+  h1 .lbl > span{background:var(--ink);color:var(--paper);padding:1px 5px}
+  h1 .lbl small{font:12px/1.2 var(--geneva);background:var(--paper);color:var(--ink);padding:1px 5px}
+
+  details,.win{background:var(--paper);border:1px solid var(--ink);box-shadow:2px 2px 0 var(--ink);margin:0 0 14px;padding:0 12px 12px}
   details:not([open]){padding-bottom:0}
-  summary{font-weight:700;font-size:14px;padding:10px 0;margin:0 -12px;cursor:pointer;list-style:none;display:flex;align-items:center;gap:10px;background:#dfe2e6;border-bottom:1px solid var(--line);padding-left:12px}
-  details:not([open]) summary{border-bottom:0}
-  summary:hover{background:#d3d7dc}
+
+  /* title bars: striped when open (the active window), plain when collapsed */
+  summary,.titlebar{position:relative;display:flex;align-items:center;justify-content:center;height:20px;margin:0 -12px 8px;padding:0 30px;
+    border-bottom:1px solid var(--ink);background:var(--paper);font:500 15px/1 var(--chicago);cursor:default;list-style:none;user-select:none}
+  details:not([open]) > summary{margin-bottom:0;border-bottom:0}
+  details[open] > summary,.titlebar{background:repeating-linear-gradient(var(--ink) 0 1px,var(--paper) 1px 2px) 1px 4px/calc(100% - 2px) 11px no-repeat,var(--paper)}
+  summary::-webkit-details-marker{display:none}
+  summary .t,.titlebar .t{background:var(--paper);padding:0 8px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  summary::before,.titlebar::before{content:"";position:absolute;left:9px;top:4px;width:11px;height:11px;border:1px solid var(--ink);background:var(--paper);box-shadow:0 0 0 1px var(--paper)}
+  summary:active::before{background:var(--ink)}
+  summary:focus-visible{outline:2px dotted var(--ink);outline-offset:-4px}
+  details:not([open]) > summary::before{background:linear-gradient(var(--ink),var(--ink)) center/5px 1px no-repeat,linear-gradient(var(--ink),var(--ink)) center/1px 5px no-repeat,var(--paper)}
+
+  .infobar{display:flex;justify-content:space-between;gap:12px;margin:0 -12px;padding:3px 10px;font:500 13px/1.2 var(--chicago);
+    border-bottom:1px solid var(--ink);box-shadow:0 2px 0 var(--paper),0 3px 0 var(--ink)}
+
+  /* fields */
+  label{display:block;margin:7px 0 3px;color:var(--ink);font-size:12px}
+  .status{font-size:12px;min-height:16px;margin-top:6px}
+  .hint{font-size:11px;margin:6px 0 0}
+  input[type=text],textarea,select{width:100%;padding:4px 6px;border:1px solid var(--ink);border-radius:0;background:var(--paper);color:var(--ink);font:13px/1.3 var(--geneva)}
+  input::placeholder,textarea::placeholder{color:var(--ink);opacity:.55}
+  textarea{resize:vertical;min-height:70px}
+  select{-webkit-appearance:none;appearance:none;padding-right:24px;box-shadow:1px 1px 0 var(--ink);
+    background:var(--popup) right 8px center/9px 5px no-repeat,var(--paper);cursor:pointer}
+  input:focus-visible,textarea:focus-visible,select:focus-visible{outline:2px solid var(--ink);outline-offset:1px}
+  .row{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+
   .ac{position:relative}
-  .ac-list{position:absolute;left:0;right:0;top:100%;z-index:5;background:var(--field);border:1px solid var(--line);border-top:0;max-height:220px;overflow-y:auto;display:none}
-  .ac-list div{padding:6px 8px;cursor:pointer;font-size:13px}
-  .ac-list div:hover,.ac-list div.sel{background:#dfe2e6}
-  .collist{margin:10px 0 0;border:1px solid var(--line);max-height:200px;overflow-y:auto}
+  .ac-list{position:absolute;left:0;right:0;top:100%;z-index:5;background:var(--paper);border:1px solid var(--ink);box-shadow:2px 2px 0 var(--ink);max-height:220px;overflow-y:auto;display:none}
+  .ac-list div{padding:3px 8px;cursor:default;font:500 14px/1.3 var(--chicago)}
+  .ac-list div:hover,.ac-list div.sel{background:var(--ink);color:var(--paper)}
+
+  /* sliders: a thin rail and a square knob, like the Control Panel volume */
+  .range{display:grid;grid-template-columns:1fr 46px;column-gap:8px;align-items:center}
+  .range output{font:500 13px/1 var(--chicago);text-align:right;font-variant-numeric:tabular-nums}
+  input[type=range]{-webkit-appearance:none;appearance:none;width:100%;height:18px;margin:0;background:none;cursor:pointer}
+  input[type=range]::-webkit-slider-runnable-track{height:6px;border:1px solid var(--ink);background:var(--dither) 0 0/2px 2px}
+  input[type=range]::-moz-range-track{height:4px;border:1px solid var(--ink);background:var(--dither) 0 0/2px 2px}
+  input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:11px;height:16px;margin-top:-6px;border:1px solid var(--ink);border-radius:0;
+    background:linear-gradient(var(--ink),var(--ink)) center/1px 8px no-repeat,var(--paper)}
+  input[type=range]::-moz-range-thumb{width:9px;height:14px;border:1px solid var(--ink);border-radius:0;
+    background:linear-gradient(var(--ink),var(--ink)) center/1px 8px no-repeat,var(--paper)}
+  input[type=range]:active::-webkit-slider-thumb{background:var(--ink)}
+  input[type=range]:active::-moz-range-thumb{background:var(--ink)}
+  input[type=range]:focus-visible{outline:2px dotted var(--ink);outline-offset:2px}
+
+  /* check boxes draw an X when on */
+  .check{display:flex;align-items:center;gap:8px;margin:8px 0;font-size:12px}
+  .check label{margin:0}
+  input[type=checkbox]{-webkit-appearance:none;appearance:none;flex:none;width:13px;height:13px;margin:0;border:1px solid var(--ink);border-radius:0;background:var(--paper);cursor:pointer}
+  input[type=checkbox]:checked{background:
+    linear-gradient(45deg,transparent calc(50% - .75px),var(--ink) calc(50% - .75px) calc(50% + .75px),transparent calc(50% + .75px)),
+    linear-gradient(-45deg,transparent calc(50% - .75px),var(--ink) calc(50% - .75px) calc(50% + .75px),transparent calc(50% + .75px)),var(--paper)}
+  input[type=checkbox]:focus-visible{outline:2px solid var(--ink);outline-offset:2px}
+
+  /* push buttons: rounded rectangles; the default button gets the thick outer ring */
+  button{padding:3px 13px;min-height:24px;border:1px solid var(--ink);border-radius:7px;background:var(--paper);color:var(--ink);font:500 14px/1.1 var(--chicago);cursor:pointer}
+  .actions > button:not(.secondary){margin:3px;box-shadow:0 0 0 2px var(--paper),0 0 0 4px var(--ink)}
+  button:active{background:var(--ink);color:var(--paper)}
+  button:focus-visible{outline:2px dotted var(--ink);outline-offset:3px}
+  .actions > button:not(.secondary):focus-visible{outline-offset:6px}
+  .actions{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+
+  .drop{border:1px dashed var(--ink);padding:14px;text-align:center;font-size:12px;cursor:pointer;background:var(--paper)}
+  .drop.over{background:var(--ink);color:var(--paper)}
+  .drop input{display:none}
+
+  .pd-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:6px;margin-top:8px;max-height:320px;overflow-y:auto}
+  .pd-grid button{margin:0;padding:0;border:1px solid var(--ink);border-radius:0;box-shadow:none;background:var(--paper);aspect-ratio:1;overflow:hidden}
+  .pd-grid button:hover{box-shadow:inset 0 0 0 2px var(--ink)}
+  .pd-grid button:focus-visible{outline:2px dotted var(--ink);outline-offset:2px}
+  .pd-grid img{width:100%;height:100%;object-fit:cover;display:block;filter:grayscale(1) contrast(1.15)}
+  .pd-grid button:hover img{filter:grayscale(1) contrast(1.15) invert(1)}
+
+  .collist{margin:10px 0 0;border:1px solid var(--ink);max-height:200px;overflow-y:auto}
   .collist:empty{display:none}
-  .colitem{display:flex;align-items:center;gap:6px;padding:5px 8px;font-size:13px;border-bottom:1px solid #e2e5e8}
+  .colitem{display:flex;align-items:center;gap:6px;padding:4px 8px;font-size:12px;border-bottom:1px dotted var(--ink)}
   .colitem:last-child{border-bottom:0}
   .colitem span{flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-  .colitem button{padding:2px 7px;font-size:12px;background:transparent;color:var(--ink)}
-  summary::-webkit-details-marker{display:none}
-  summary::before{content:"";width:0;height:0;margin-left:2px;border-left:5px solid var(--ink);border-top:4px solid transparent;border-bottom:4px solid transparent;transition:transform .12s}
-  details[open] summary::before{transform:rotate(90deg)}
-  .status{font-size:12px;color:var(--mute);min-height:16px;margin-top:6px}
-  label{display:block;margin:6px 0 2px;color:var(--mute);font-size:12px}
-  input[type=text],textarea,select{width:100%;padding:6px 8px;border:1px solid var(--line);background:var(--field);color:var(--ink);font:inherit;border-radius:2px}
-  textarea{resize:vertical;min-height:70px}
-  input:focus,textarea:focus,select:focus,button:focus{outline:2px solid var(--ink);outline-offset:1px}
-  .row{display:grid;grid-template-columns:1fr 1fr;gap:10px}
-  .range{display:grid;grid-template-columns:1fr 46px;gap:8px;align-items:center}
-  .range input[type=range]{width:100%;margin:0}
-  .range output{font-size:12px;color:var(--mute);text-align:right;font-variant-numeric:tabular-nums}
-  .check{display:flex;align-items:center;gap:8px;margin:8px 0;font-size:13px}
-  .check label{margin:0;color:var(--ink)}
-  .check input{margin:0}
-  button{padding:8px 14px;border:1px solid var(--ink);background:var(--ink);color:#fff;font:inherit;cursor:pointer;border-radius:2px}
-  button.secondary{background:transparent;color:var(--ink)}
-  .actions{display:flex;gap:10px;flex-wrap:wrap}
-  #preview{touch-action:none;max-height:calc(100vh - 100px);max-width:100%;box-shadow:0 10px 30px rgba(0,0,0,.35);background:#fff}
-  .hint{font-size:12px;color:var(--mute);margin:4px 0 0}
-  .drop{border:1px dashed var(--line);padding:14px;text-align:center;color:var(--mute);font-size:12px;cursor:pointer;background:var(--field)}
-  .drop.over{border-color:var(--ink);color:var(--ink)}
-  .pd-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:6px;margin-top:8px;max-height:320px;overflow-y:auto}
-  .pd-grid button{padding:0;border:1px solid var(--line);background:var(--field);aspect-ratio:1;overflow:hidden;cursor:pointer}
-  .pd-grid button:hover,.pd-grid button:focus-visible{border-color:var(--ink)}
-  .pd-grid img{width:100%;height:100%;object-fit:cover;display:block}
-  .drop input{display:none}
-  @media (max-width:900px){ body{grid-template-columns:1fr;grid-template-rows:auto 1fr;overflow:auto;height:auto}
-    aside{border-right:0;border-bottom:1px solid var(--line)} #preview{max-height:80vh} }
+  .colitem button{margin:0;padding:1px 7px;min-height:0;font-size:13px;border-radius:5px;box-shadow:none}
+
+  /* the card sits in its own document window */
+  .win.card{display:inline-flex;flex-direction:column;margin:0;padding:0 12px;max-width:100%}
+  .titlebar{margin-bottom:0}
+  .pane{display:grid;grid-template-columns:auto 16px;grid-template-rows:auto 16px;margin:2px -12px 0;border-top:1px solid var(--ink)}
+  .pane .doc{padding:16px;display:flex;justify-content:center;min-width:0}
+  #preview{display:block;touch-action:none;max-height:calc(100vh - 170px);max-width:100%;background:var(--paper)}
+  .vbar,.hbar{display:flex;justify-content:space-between;background:var(--paper)}
+  .vbar{flex-direction:column;border-left:1px solid var(--ink)}
+  .hbar{border-top:1px solid var(--ink)}
+  .vbar i,.hbar i,.grow{display:block;width:15px;height:15px;background:center/15px no-repeat}
+  .vbar i:first-child{background-image:var(--arrow-up);border-bottom:1px solid var(--ink);height:16px}
+  .vbar i:last-child{background-image:var(--arrow-down);border-top:1px solid var(--ink);height:16px}
+  .hbar i:first-child{background-image:var(--arrow-left);border-right:1px solid var(--ink);width:16px}
+  .hbar i:last-child{background-image:var(--arrow-right);border-left:1px solid var(--ink);width:16px}
+  .grow{width:16px;height:16px;border-top:1px solid var(--ink);border-left:1px solid var(--ink);
+    background:linear-gradient(var(--ink),var(--ink)) 3px 3px/7px 1px no-repeat,linear-gradient(var(--ink),var(--ink)) 3px 3px/1px 7px no-repeat,
+      linear-gradient(var(--ink),var(--ink)) 9px 3px/1px 4px no-repeat,linear-gradient(var(--ink),var(--ink)) 3px 9px/4px 1px no-repeat,
+      linear-gradient(var(--ink),var(--ink)) 6px 6px/7px 1px no-repeat,linear-gradient(var(--ink),var(--ink)) 6px 6px/1px 7px no-repeat,
+      linear-gradient(var(--ink),var(--ink)) 12px 6px/1px 7px no-repeat,linear-gradient(var(--ink),var(--ink)) 6px 12px/7px 1px no-repeat,var(--paper)}
+
+  /* real scroll bars, Finder style */
+  ::-webkit-scrollbar{width:16px;height:16px;background:var(--paper)}
+  ::-webkit-scrollbar-track{background:var(--dither) 0 0/2px 2px}
+  ::-webkit-scrollbar-track:vertical{border-left:1px solid var(--ink)}
+  ::-webkit-scrollbar-track:horizontal{border-top:1px solid var(--ink)}
+  ::-webkit-scrollbar-thumb{background:var(--paper);border:1px solid var(--ink)}
+  ::-webkit-scrollbar-button{display:block;width:16px;height:16px;background:center/15px no-repeat var(--paper)}
+  ::-webkit-scrollbar-button:vertical:decrement{background-image:var(--arrow-up);border-left:1px solid var(--ink);border-bottom:1px solid var(--ink)}
+  ::-webkit-scrollbar-button:vertical:increment{background-image:var(--arrow-down);border-left:1px solid var(--ink);border-top:1px solid var(--ink)}
+  ::-webkit-scrollbar-button:horizontal:decrement{background-image:var(--arrow-left);border-top:1px solid var(--ink);border-right:1px solid var(--ink)}
+  ::-webkit-scrollbar-button:horizontal:increment{background-image:var(--arrow-right);border-top:1px solid var(--ink);border-left:1px solid var(--ink)}
+  ::-webkit-scrollbar-button:vertical:start:increment,::-webkit-scrollbar-button:vertical:end:decrement,
+  ::-webkit-scrollbar-button:horizontal:start:increment,::-webkit-scrollbar-button:horizontal:end:decrement{display:none}
+  ::-webkit-scrollbar-corner{background:var(--paper)}
+  @supports not selector(::-webkit-scrollbar){ *{scrollbar-color:var(--ink) var(--paper)} }
+
+  @media (max-width:900px){
+    body{grid-template-columns:1fr;grid-template-rows:auto auto 1fr;overflow:auto;height:auto}
+    .menubar{position:sticky;top:0;padding:0 4px}
+    .menubar .menu > button{padding:0 8px}
+    aside{overflow:visible;padding:14px 16px 8px}
+    main{padding:8px 16px 32px}
+    #preview{max-height:80vh}
+    input[type=text],textarea,select{font-size:16px}
+  }
 </style>
 </head>
 <body>
+<nav class="menubar" aria-label="Menu bar">
+  <span class="glyph" aria-hidden="true"><svg width="12" height="16" viewBox="0 0 12 16" shape-rendering="crispEdges"><rect x="0.5" y="0.5" width="11" height="15" fill="#fff" stroke="#000"/><rect x="2" y="2" width="8" height="6"/><path d="M2 10.5h8M2 12.5h6" stroke="#000"/></svg></span>
+  <div class="menu"><button type="button" aria-haspopup="true" aria-expanded="false">File</button>
+    <ul><li><button type="button" data-click="download">Download PNG</button></li><li><button type="button" data-click="addCard">Add to collection</button></li><li class="sep" aria-hidden="true"></li><li><button type="button" data-click="reset">Clear card</button></li></ul></div>
+  <div class="menu"><button type="button" aria-haspopup="true" aria-expanded="false">Edit</button>
+    <ul><li><button type="button" data-click="reroll">Re-roll texture</button></li></ul></div>
+  <div class="menu"><button type="button" aria-haspopup="true" aria-expanded="false">View</button>
+    <ul><li><button type="button" data-view="open">Open all windows</button></li><li><button type="button" data-view="close">Collapse all windows</button></li></ul></div>
+  <div class="menu"><button type="button" aria-haspopup="true" aria-expanded="false">Special</button>
+    <ul><li><button type="button" data-click="randomCard">Random card</button></li><li><button type="button" data-click="pdRandom">Random picture</button></li></ul></div>
+</nav>
 <aside>
-  <h1>Sinthan's but with a Z proxy builder <span style="font-weight:400;color:var(--mute)">63 × 88 mm</span></h1>
+  <h1><svg class="disk" width="26" height="34" viewBox="0 0 26 34" shape-rendering="crispEdges" aria-hidden="true"><rect x="0.5" y="0.5" width="25" height="33" fill="#fff" stroke="#000"/><rect x="3.5" y="3.5" width="19" height="3" fill="#fff" stroke="#000"/><rect x="3.5" y="9.5" width="19" height="11" fill="#000" stroke="#000"/><path d="M4 23h18M4 25h18M4 27h14" stroke="#000"/></svg><span class="lbl"><span>Sinthan's but with a Z proxy builder</span><small>63 × 88 mm</small></span></h1>
 
   <details open>
-    <summary>Load a card from Scryfall</summary>
+    <summary><span class="t">Load a card from Scryfall</span></summary>
     <label for="lookup">Card name</label>
     <div class="ac"><input type="text" id="lookup" placeholder="Start typing a card name, then click a suggestion (Enter loads the typed name)" autocomplete="off"><div class="ac-list" id="acList"></div></div>
     <div class="row">
@@ -75,7 +209,7 @@
   </details>
 
   <details open>
-    <summary>Frame</summary>
+    <summary><span class="t">Frame</span></summary>
     <div class="row">
       <div><label for="layout">Layout</label>
         <select id="layout">
@@ -124,7 +258,7 @@
   </details>
 
   <details>
-    <summary>Card</summary>
+    <summary><span class="t">Card</span></summary>
     <div class="check"><input type="checkbox" id="customFlag"><label for="customFlag">Custom card (custom name above the real name)</label></div>
     <div id="customWrap" hidden>
       <label for="customName">Custom name</label>
@@ -153,7 +287,7 @@
   </details>
 
   <details>
-    <summary>Picture</summary>
+    <summary><span class="t">Picture</span></summary>
     <div class="drop" id="drop"><input type="file" id="file" accept="image/*">Click, drop or paste an image</div>
     <label for="pdQuery">Search public domain images</label>
     <div class="row">
@@ -185,7 +319,7 @@
   </details>
 
   <details>
-    <summary>Photocopy</summary>
+    <summary><span class="t">Photocopy</span></summary>
     <div class="range"><label>Paper grain</label><span></span><input type="range" id="grain" min="0" max="1" step="0.01" value="0.35"><output>0.35</output></div>
     <div class="range"><label>Toner contrast</label><span></span><input type="range" id="toner" min="0" max="1" step="0.01" value="0.3"><output>0.30</output></div>
     <div class="range"><label>Ink specks</label><span></span><input type="range" id="specks" min="0" max="1" step="0.01" value="0.3"><output>0.30</output></div>
@@ -195,7 +329,7 @@
   </details>
 
   <details>
-    <summary>Damage</summary>
+    <summary><span class="t">Damage</span></summary>
     <div class="range"><label>Pencil scratches</label><span></span><input type="range" id="scratch" min="0" max="1" step="0.01" value="0.3"><output>0.30</output></div>
     <div class="range"><label>Tape pieces</label><span></span><input type="range" id="tape" min="0" max="6" step="1" value="2"><output>2</output></div>
     <div class="range"><label>Ink drops</label><span></span><input type="range" id="drops" min="0" max="8" step="1" value="0"><output>0</output></div>
@@ -207,7 +341,7 @@
   </details>
 
   <details>
-    <summary>Collection (session only)</summary>
+    <summary><span class="t">Collection (session only)</span></summary>
     <div class="actions">
       <button id="addCard" type="button">Add current card</button>
       <button class="secondary" id="clearCol" type="button">Empty</button>
@@ -227,7 +361,7 @@
   </details>
 
   <details open>
-    <summary>Export</summary>
+    <summary><span class="t">Export</span></summary>
     <label for="dpi">Resolution</label>
     <select id="dpi"><option value="1">300 dpi (744 × 1039)</option><option value="2">600 dpi (1488 × 2079)</option></select>
     <div class="actions" style="margin-top:10px">
@@ -238,7 +372,18 @@
   </details>
 </aside>
 
-<main><canvas id="preview" width="744" height="1039"></canvas></main>
+<main>
+  <div class="win card">
+    <div class="titlebar"><span class="t">Proxy</span></div>
+    <div class="infobar"><span>63 × 88 mm</span><span>Drag the picture to move it</span></div>
+    <div class="pane">
+      <div class="doc"><canvas id="preview" width="744" height="1039"></canvas></div>
+      <div class="vbar" aria-hidden="true"><i></i><i></i></div>
+      <div class="hbar" aria-hidden="true"><i></i><i></i></div>
+      <div class="grow" aria-hidden="true"></div>
+    </div>
+  </div>
+</main>
 
 <script>
 (() => {
@@ -1038,6 +1183,25 @@
   });
 
   render(preview, 1);
+})();
+</script>
+<script>
+// menu bar: each item clicks an existing control, so behavior stays in one place
+(() => {
+  const bar = document.querySelector('.menubar'), menus = [...bar.querySelectorAll('.menu')];
+  const close = () => menus.forEach(m => { m.classList.remove('open'); m.firstElementChild.setAttribute('aria-expanded', 'false'); });
+  const open = m => { close(); m.classList.add('open'); m.firstElementChild.setAttribute('aria-expanded', 'true'); };
+  bar.addEventListener('click', e => {
+    const head = e.target.closest('.menu > button');
+    if (head) { const m = head.parentElement; m.classList.contains('open') ? close() : open(m); return; }
+    const item = e.target.closest('li button'); if (!item) return;
+    close();
+    if (item.dataset.click) document.getElementById(item.dataset.click).click();
+    if (item.dataset.view) document.querySelectorAll('aside details').forEach(d => { d.open = item.dataset.view === 'open'; });
+  });
+  bar.addEventListener('mouseover', e => { const m = e.target.closest('.menu'); if (m && !m.classList.contains('open') && menus.some(x => x.classList.contains('open'))) open(m); });
+  document.addEventListener('pointerdown', e => { if (!bar.contains(e.target)) close(); });
+  document.addEventListener('keydown', e => { if (e.key === 'Escape') close(); });
 })();
 </script>
 </body>
