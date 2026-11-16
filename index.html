@@ -353,7 +353,6 @@
     <div class="row pd-row">
       <div><input type="text" id="pdQuery" placeholder="e.g. monk, dragon, castle"></div>
       <div><div class="actions">
-        <select id="pdSource" aria-label="Image source"><option value="commons">Wikimedia Commons</option><option value="loc">Library of Congress</option></select>
         <button class="secondary" id="pdSearch" type="button">Search</button>
         <button class="secondary" id="pdRandom" type="button">Random picture</button></div></div>
     </div>
@@ -495,7 +494,7 @@
       <p>Added in this fork:</p>
       <ul class="about-list">
         <li>Pick any printing of a card loaded from Scryfall</li>
-        <li>Public domain picture search (Wikimedia Commons, Library of Congress) with a Random button</li>
+        <li>Public domain picture search (Wikimedia Commons) with Random</li>
         <li>Drag the picture on the preview to position it</li>
         <li>Shuffle look and Shuffle aging buttons under the preview</li>
         <li>Size sliders for the title, type line and rules text</li>
@@ -1169,8 +1168,7 @@
   };
   const RANDOM_WORDS = ['dragon','knight','castle','monk','forest','ship','owl','skull','angel','demon','wolf','serpent','sword','tower',
     'mountain','storm','witch','king','queen','ruins','lion','raven','sea monster','cathedral','battle','wizard','horse','moon','tiger','giant'];
-  const PD_SOURCES = {
-    async commons(q, page) {
+  const pdCommons = async (q, page) => {
       // Search only files carrying a public domain / CC0 template, then double-check the license field.
       const u = 'https://commons.wikimedia.org/w/api.php?action=query&format=json&origin=*&generator=search&gsrnamespace=6&gsrlimit=50&gsroffset=' + page * 50
         + '&gsrsearch=' + encodeURIComponent(q + ' filetype:bitmap hastemplate:"PD-Art|PD-old|PD-old-100|PD-US|PD-US-expired|PD-scan|PD-author|PD-self|PD-USGov|CC-zero"')
@@ -1183,24 +1181,6 @@
         return [{ thumb, full: ii.thumburl, title: stripTags(md.ObjectName?.value) || p.title.replace(/^File:|\.\w+$/g, ''),
           credit: stripTags(md.Artist?.value), license: lic, page: ii.descriptionurl }];
       });
-    },
-    async loc(q, page) {
-      // Prints & Photographs. Skip access-restricted items and any record whose rights note mentions a restriction.
-      const u = `https://www.loc.gov/photos/?fo=json&at=results&c=40&sp=${page + 1}&q=` + encodeURIComponent(q);
-      const j = await getJSON(u);
-      return (j.results || []).flatMap(r => {
-        const urls = (r.image_url || []).map(x => x.split('#')[0]);
-        const rights = r.item?.rights || '';
-        if (!urls.length || r.access_restricted || (rights && !/no known restrictions/i.test(rights))) return [];
-        if (!(r.original_format || []).some(f => /photo|print|drawing/i.test(f))) return [];
-        if ((r.item?.genre || []).some(g => /card catalog/i.test(g)) || /card catalog/i.test(r.item?.source_collection || '')) return [];  // scanned index cards
-        const big = urls[urls.length - 1];
-        const full = /image-services\/iiif/.test(big) ? big.replace(/\/full\/[^/]+\//, '/full/1400,/') : big;
-        return [{ thumb: urls[0], full, fallback: urls[0], title: (r.title || 'Untitled').replace(/\s+/g, ' '),
-          credit: [(r.contributor || [])[0], r.date].filter(Boolean).join(', '),
-          license: rights ? 'No known restrictions' : 'LoC, see record', page: r.url }];
-      });
-    }
   };
   const loadRemote = (src, fallback, label) => {
     pdStatus('Loading picture…');
@@ -1216,14 +1196,14 @@
   };
   async function pdSearch(random) {
     if (random === true) $('pdQuery').value = RANDOM_WORDS[Math.floor(Math.random() * RANDOM_WORDS.length)];
-    const q = $('pdQuery').value.trim(), src = $('pdSource').value, grid = $('pdResults');
+    const q = $('pdQuery').value.trim(), grid = $('pdResults');
     if (!q) { pdStatus('Type something to search for.'); return; }
     pdStatus('Searching…'); grid.innerHTML = '';
     let res;
-    try { res = await PD_SOURCES[src](q, random === true ? Math.floor(Math.random() * 4) : 0);
-      if (!res.length && random === true) res = await PD_SOURCES[src](q, 0); }
-    catch (e) { pdStatus('Search failed or timed out. Try again, or switch source.'); return; }
-    if (!res.length) { pdStatus('No public domain images found. Try other words or the other source.'); return; }
+    try { res = await pdCommons(q, random === true ? Math.floor(Math.random() * 4) : 0);
+      if (!res.length && random === true) res = await pdCommons(q, 0); }
+    catch (e) { pdStatus('Search failed or timed out. Try again.'); return; }
+    if (!res.length) { pdStatus('No public domain images found. Try other words.'); return; }
     for (const r of res) {
       const b = document.createElement('button'); b.type = 'button';
       const label = [r.title, r.credit].filter(Boolean).join(' · ') + (r.license ? ` (${r.license})` : '');
