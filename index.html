@@ -29,7 +29,7 @@
   body,h1 .lbl small{-webkit-text-stroke:.35px currentColor}
   .menubar,h1,summary,.titlebar,.infobar,.ac-list div,.range output,button{-webkit-text-stroke:0}
   body{font:12px/1.4 var(--geneva);color:var(--ink);background:var(--desk);caret-color:var(--ink);
-    display:grid;grid-template-columns:420px 1fr;grid-template-rows:auto 1fr;height:100vh;overflow:hidden}
+    display:grid;grid-template-columns:380px minmax(0,1fr) 380px;grid-template-rows:auto minmax(0,1fr);height:100vh;overflow:hidden}
 
   /* menu bar */
   .menubar{grid-column:1/-1;position:relative;z-index:20;display:flex;align-items:stretch;height:22px;padding:0 10px;
@@ -69,6 +69,20 @@
   /* the control column: a stack of windows on the desktop */
   aside{overflow-y:auto;padding:16px 18px 48px}
   main{display:flex;align-items:center;justify-content:center;padding:20px;overflow:auto}
+  /* wide: content controls left, card in the middle, style and output right */
+  .dock{display:contents}
+  .side-left{grid-column:1;grid-row:2}
+  main{grid-column:2;grid-row:2}
+  .side-right{grid-column:3;grid-row:2}
+  .menubar{grid-column:1/-1}
+  /* medium: both control stacks share one scrolling column on the left */
+  @media (max-width:1199px) and (min-width:901px){
+    body{grid-template-columns:400px minmax(0,1fr)}
+    .dock{display:block;grid-column:1;grid-row:2;overflow-y:auto}
+    .dock aside{overflow:visible}
+    .side-left{padding-bottom:0}
+    .side-right{padding-top:0}
+  }
 
   h1{display:flex;align-items:center;gap:10px;margin:0 0 16px;font:400 19px/1.2 var(--chicago)}
   h1 .disk{flex:none}
@@ -238,6 +252,8 @@
     main{order:1;position:sticky;top:36px;z-index:10;display:flex;align-items:flex-start;justify-content:center;
       padding:6px 12px;overflow:visible;background:var(--desk);border-bottom:1px solid var(--edge)}
     aside{order:2;overflow:visible;padding:14px 12px max(40px,calc(env(safe-area-inset-bottom) + 24px))}
+    .side-left{padding-bottom:0}
+    .side-right{order:3;padding-top:0}
     .win.card{display:flex;width:100%;max-width:420px;margin:0}
     .infobar,.vbar,.hbar,.grow{display:none}
     .pane{display:block;margin:0 -6px}
@@ -283,7 +299,8 @@
     body{display:grid;grid-template-columns:minmax(0,5fr) minmax(0,6fr);grid-template-rows:36px minmax(0,1fr);height:100vh;overflow:hidden}
     .menubar{grid-column:1/-1}
     main{grid-column:1;grid-row:2;position:static;overflow:auto;align-items:center;border-bottom:0;border-right:1px solid var(--edge)}
-    aside{grid-column:2;grid-row:2;overflow-y:auto}
+    .dock{display:block;grid-column:2;grid-row:2;overflow-y:auto}
+    .dock aside{overflow:visible}
     #preview{height:calc(100vh - 36px - 32px - 64px - 28px);min-height:120px}
   }
 </style>
@@ -301,7 +318,8 @@
   <div class="menu"><button type="button" aria-haspopup="true" aria-expanded="false">Special</button>
     <ul><li><button type="button" data-click="randomCard">Random card</button></li><li><button type="button" data-click="pdRandom">Random picture</button></li></ul></div>
 </nav>
-<aside>
+<div class="dock">
+<aside class="side-left" aria-label="Card text and layout">
   <h1 class="sr-only">Zproxy Builder</h1>
 
   <details open class="fixed">
@@ -350,49 +368,6 @@
   </details>
 
   <details open>
-    <summary><span class="t">Picture</span></summary>
-    <div class="drop" id="drop"><input type="file" id="file" accept="image/*">Click, drop or paste an image</div>
-    <details class="sub" open>
-    <summary>Search public domain images</summary>
-    <div class="pd-row">
-      <input type="text" id="pdQuery" placeholder="e.g. monk, dragon, castle" aria-label="Search public domain images">
-      <button class="secondary icon-btn" id="pdSearch" type="button" title="Search" aria-label="Search">
-        <svg viewBox="0 0 16 16" aria-hidden="true"><circle cx="6.5" cy="6.5" r="4.5"/><path d="M10 10l4.5 4.5"/></svg></button>
-      <button class="secondary icon-btn" id="pdRandom" type="button" title="Random picture" aria-label="Random picture">
-        <svg viewBox="0 0 16 16" aria-hidden="true"><rect x="1.5" y="1.5" width="13" height="13" rx="2.5"/><circle class="pip" cx="5" cy="5" r="1.2"/><circle class="pip" cx="8" cy="8" r="1.2"/><circle class="pip" cx="11" cy="11" r="1.2"/></svg></button>
-    </div>
-    <div class="pd-grid" id="pdResults"></div>
-    <p class="status" id="pdStatus"></p>
-    </details>
-    <p class="grp">Crop</p>
-    <label for="fit">Picture fit</label>
-    <select id="fit"><option value="contain">Fit inside frame (no cropping)</option><option value="cover">Fill frame (crop edges)</option></select>
-    <div class="range"><label>Zoom</label><span></span><input type="range" id="zoom" min="0.5" max="3" step="0.01" value="1"><output>1.00</output></div>
-    <!-- position is set by dragging the preview; the sliders stay (hidden) as the state behind it and for old saved cards -->
-    <div hidden>
-      <div class="range"><label>Offset X</label><span></span><input type="range" id="offx" min="-1" max="1" step="0.01" value="0"><output>0.00</output></div>
-      <div class="range"><label>Offset Y</label><span></span><input type="range" id="offy" min="-1" max="1" step="0.01" value="0"><output>0.00</output></div>
-    </div>
-    <div class="actions" style="margin-top:6px"><button class="secondary" id="resetPos" type="button">Reset position</button></div>
-    <p class="grp">Halftone</p>
-    <label for="dither">Picture dither</label>
-    <select id="dither">
-      <option value="bayer">Ordered dither (screen)</option>
-      <option value="fs">Error diffusion (grain)</option>
-      <option value="threshold">Hard threshold</option>
-      <option value="gray">Grayscale, no dither</option>
-    </select>
-    <div class="range"><label>Contrast</label><span></span><input type="range" id="contrast" min="0" max="3" step="0.05" value="1.4"><output>1.40</output></div>
-    <details class="sub">
-      <summary>Fine tune</summary>
-      <div class="range"><label>Dot size</label><span></span><input type="range" id="dot" min="1" max="5" step="1" value="2"><output>2</output></div>
-      <div class="range"><label>Brightness</label><span></span><input type="range" id="bright" min="-100" max="100" step="1" value="0"><output>0</output></div>
-      <div class="check"><input type="checkbox" id="invert"><label for="invert">Invert picture</label></div>
-      <div class="check"><input type="checkbox" id="artBorder" checked><label for="artBorder">Border around picture</label></div>
-    </details>
-  </details>
-
-  <details>
     <summary><span class="t">Frame</span></summary>
     <div class="row">
       <div><label for="layout">Layout</label>
@@ -442,8 +417,53 @@
       <p class="hint">Rules text always shrinks if it doesn't fit the box.</p>
     </details>
   </details>
+</aside>
 
-  <details>
+<aside class="side-right" aria-label="Picture, aging and collection">
+  <details open>
+    <summary><span class="t">Picture</span></summary>
+    <div class="drop" id="drop"><input type="file" id="file" accept="image/*">Click, drop or paste an image</div>
+    <details class="sub" open>
+    <summary>Search public domain images</summary>
+    <div class="pd-row">
+      <input type="text" id="pdQuery" placeholder="e.g. monk, dragon, castle" aria-label="Search public domain images">
+      <button class="secondary icon-btn" id="pdSearch" type="button" title="Search" aria-label="Search">
+        <svg viewBox="0 0 16 16" aria-hidden="true"><circle cx="6.5" cy="6.5" r="4.5"/><path d="M10 10l4.5 4.5"/></svg></button>
+      <button class="secondary icon-btn" id="pdRandom" type="button" title="Random picture" aria-label="Random picture">
+        <svg viewBox="0 0 16 16" aria-hidden="true"><rect x="1.5" y="1.5" width="13" height="13" rx="2.5"/><circle class="pip" cx="5" cy="5" r="1.2"/><circle class="pip" cx="8" cy="8" r="1.2"/><circle class="pip" cx="11" cy="11" r="1.2"/></svg></button>
+    </div>
+    <div class="pd-grid" id="pdResults"></div>
+    <p class="status" id="pdStatus"></p>
+    </details>
+    <p class="grp">Crop</p>
+    <label for="fit">Picture fit</label>
+    <select id="fit"><option value="contain">Fit inside frame (no cropping)</option><option value="cover">Fill frame (crop edges)</option></select>
+    <div class="range"><label>Zoom</label><span></span><input type="range" id="zoom" min="0.5" max="3" step="0.01" value="1"><output>1.00</output></div>
+    <!-- position is set by dragging the preview; the sliders stay (hidden) as the state behind it and for old saved cards -->
+    <div hidden>
+      <div class="range"><label>Offset X</label><span></span><input type="range" id="offx" min="-1" max="1" step="0.01" value="0"><output>0.00</output></div>
+      <div class="range"><label>Offset Y</label><span></span><input type="range" id="offy" min="-1" max="1" step="0.01" value="0"><output>0.00</output></div>
+    </div>
+    <div class="actions" style="margin-top:6px"><button class="secondary" id="resetPos" type="button">Reset position</button></div>
+    <p class="grp">Halftone</p>
+    <label for="dither">Picture dither</label>
+    <select id="dither">
+      <option value="bayer">Ordered dither (screen)</option>
+      <option value="fs">Error diffusion (grain)</option>
+      <option value="threshold">Hard threshold</option>
+      <option value="gray">Grayscale, no dither</option>
+    </select>
+    <div class="range"><label>Contrast</label><span></span><input type="range" id="contrast" min="0" max="3" step="0.05" value="1.4"><output>1.40</output></div>
+    <details class="sub">
+      <summary>Fine tune</summary>
+      <div class="range"><label>Dot size</label><span></span><input type="range" id="dot" min="1" max="5" step="1" value="2"><output>2</output></div>
+      <div class="range"><label>Brightness</label><span></span><input type="range" id="bright" min="-100" max="100" step="1" value="0"><output>0</output></div>
+      <div class="check"><input type="checkbox" id="invert"><label for="invert">Invert picture</label></div>
+      <div class="check"><input type="checkbox" id="artBorder" checked><label for="artBorder">Border around picture</label></div>
+    </details>
+  </details>
+
+  <details open>
     <summary><span class="t">Aging</span></summary>
     <div class="actions">
       <button class="secondary" id="shuffleAging" type="button">Shuffle aging</button>
@@ -488,6 +508,7 @@
     <p class="hint">The collection is kept in memory only and is lost when the page is closed. The JSON contains the picture, so it is a few MB per card.</p>
   </details>
 </aside>
+</div>
 
 <dialog class="win about" id="about" aria-labelledby="aboutTitle">
   <div class="titlebar"><button type="button" class="closebox" aria-label="Close" data-close></button><span class="t" id="aboutTitle">About Zproxy Builder</span></div>
