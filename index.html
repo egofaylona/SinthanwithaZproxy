@@ -209,6 +209,11 @@
   .dial input{flex:1;min-width:80px}
   .quick{justify-content:center;padding:10px 0 4px}
   #preview{display:block;touch-action:none;max-height:calc(100vh - 170px);max-width:100%;background:var(--paper)}
+  /* desktop: size the card from the middle pane's real height so the pane never scrolls (149px = window chrome around the canvas) */
+  @media (min-width:901px){
+    main{container-type:size}
+    #preview{max-height:calc(100cqh - 152px)}
+  }
   .vbar,.hbar{display:flex;justify-content:space-between;background:var(--plat)}
   .vbar{flex-direction:column;border-left:1px solid var(--edge)}
   .hbar{border-top:1px solid var(--edge)}
