@@ -123,6 +123,11 @@
   .lookup-row{display:flex;gap:8px;align-items:center}
   .lookup-row .ac{flex:1;min-width:0}
   .lookup-row button{margin:0;flex:none}
+  .pd-row{display:flex;gap:6px;align-items:center}
+  .pd-row input{flex:1;min-width:0}
+  .icon-btn{flex:none;display:inline-grid;place-items:center;padding:0;min-width:32px}
+  .icon-btn svg{width:16px;height:16px;fill:none;stroke:currentColor;stroke-width:1.6;stroke-linecap:round}
+  .icon-btn svg .pip{fill:currentColor;stroke:none}
   .ac-list{position:absolute;left:0;right:0;top:100%;z-index:5;background:#ececec;border:1px solid var(--edge);box-shadow:var(--bevel),2px 3px 4px rgba(0,0,0,.35);max-height:220px;overflow-y:auto;display:none}
   .ac-list div{padding:3px 8px;cursor:default;font:400 18px/1.3 var(--chicago)}
   .ac-list div:hover,.ac-list div.sel{background:var(--menu-hi);color:var(--paper)}
@@ -228,7 +233,6 @@
     .menubar{font-size:17px}
     .menubar .glyph{padding:0 6px 0 2px}
     .menubar .menu > button,.menubar > .app{padding:0 7px;white-space:nowrap}
-    .pd-row{grid-template-columns:1fr}
     .menubar li button{padding:12px 20px}
     .status:empty{min-height:0;margin:0}
     main{order:1;position:sticky;top:36px;z-index:10;display:flex;align-items:flex-start;justify-content:center;
@@ -350,11 +354,12 @@
     <div class="drop" id="drop"><input type="file" id="file" accept="image/*">Click, drop or paste an image</div>
     <details class="sub" open>
     <summary>Search public domain images</summary>
-    <div class="row pd-row">
-      <div><input type="text" id="pdQuery" placeholder="e.g. monk, dragon, castle"></div>
-      <div><div class="actions">
-        <button class="secondary" id="pdSearch" type="button">Search</button>
-        <button class="secondary" id="pdRandom" type="button">Random picture</button></div></div>
+    <div class="pd-row">
+      <input type="text" id="pdQuery" placeholder="e.g. monk, dragon, castle" aria-label="Search public domain images">
+      <button class="secondary icon-btn" id="pdSearch" type="button" title="Search" aria-label="Search">
+        <svg viewBox="0 0 16 16" aria-hidden="true"><circle cx="6.5" cy="6.5" r="4.5"/><path d="M10 10l4.5 4.5"/></svg></button>
+      <button class="secondary icon-btn" id="pdRandom" type="button" title="Random picture" aria-label="Random picture">
+        <svg viewBox="0 0 16 16" aria-hidden="true"><rect x="1.5" y="1.5" width="13" height="13" rx="2.5"/><circle class="pip" cx="5" cy="5" r="1.2"/><circle class="pip" cx="8" cy="8" r="1.2"/><circle class="pip" cx="11" cy="11" r="1.2"/></svg></button>
     </div>
     <div class="pd-grid" id="pdResults"></div>
     <p class="status" id="pdStatus"></p>
